@@ -9,15 +9,15 @@
   <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
   <div class="mb-3">
     <label for="complaints" class="form-label">Жалобы *</label>
-    <textarea class="form-control form-control-lg" id="complaints" name="complaints" rows="3" required>{{ values.complaints }}</textarea>
+    <textarea class="form-control form-control-lg" id="complaints" name="complaints" rows="3" maxlength="2000" required>{{ values.complaints }}</textarea>
   </div>
   <div class="mb-3">
     <label for="diagnosis" class="form-label">Диагноз *</label>
-    <input class="form-control form-control-lg" id="diagnosis" name="diagnosis" value="{{ values.diagnosis }}" required>
+    <input class="form-control form-control-lg" id="diagnosis" name="diagnosis" value="{{ values.diagnosis }}" maxlength="500" required>
   </div>
   <div class="mb-3">
     <label for="actions" class="form-label">Оказанная помощь *</label>
-    <textarea class="form-control form-control-lg" id="actions" name="actions" rows="3" required>{{ values.actions }}</textarea>
+    <textarea class="form-control form-control-lg" id="actions" name="actions" rows="3" maxlength="2000" required>{{ values.actions }}</textarea>
   </div>
   <div class="mb-4">
     <label for="outcome" class="form-label">Исход *</label>

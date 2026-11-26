@@ -1,0 +1,70 @@
+  {% extends "base.html" %}
+  {% block title %}{{ form_title }}{% endblock %}
+
+  {% block css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/form.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/appointment_form.css') }}">
+  {% endblock %}
+
+  {% block content %}
+    <div class="form-page">
+      <a href="/patient/{{ patient_id }}" class="btn btn-outline btn-back">← К карточке пациента</a>
+      <h1 class="page-title">{{ form_title }}</h1>
+
+      <div id="offline-banner" class="form-offline-banner">
+        Нет связи. Запись сохранится локально и отправится автоматически,
+        когда появится интернет.
+      </div>
+
+      <form action="{{ form_action }}" method="POST" data-offline-queue>
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="patient_id" value="{{ patient_id }}">
+
+        <div class="form-group">
+          <label class="form-label" for="appt-date">Дата приёма</label>
+          <input id="appt-date" type="date" name="date"
+              class="form-textarea" required
+              min="{{ today }}"
+              value="{{ form_date or today }}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="appt-time">Время приёма</label>
+          <input id="appt-time" type="time" name="time"
+              class="form-textarea" required
+              min="08:00"
+              max="17:00"
+              value="{{ form_time or default_time }}">
+        </div>
+
+        <div class="form-group">
+  <label class="form-label" for="appt-doctor">Врач / специальность</label>
+
+  <select id="appt-doctor" name="doctor" class="form-textarea" required>
+    <option value="">Выберите специальность</option>
+    <option value="Терапевт">Терапевт</option>
+    <option value="Кардиолог">Кардиолог</option>
+    <option value="Невролог">Невролог</option>
+    <option value="Хирург">Хирург</option>
+    <option value="Педиатр">Педиатр</option>
+    <option value="Офтальмолог">Офтальмолог</option>
+    <option value="Отоларинголог">Отоларинголог</option>
+  </select>
+</div>
+
+        <div class="form-group">
+          <label class="form-label" for="appt-note">Комментарий</label>
+          <textarea id="appt-note" name="note"
+            class="form-textarea" rows="4"
+            placeholder="Необязательно">{{ form_note or '' }}</textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">Сохранить запись</button>
+        <a href="/patient/{{ patient_id }}" class="btn btn-outline btn-block">Отмена</a>
+      </form>
+    </div>
+  {% endblock %}
+
+  {% block js %}
+    <script src="{{ url_for('static', filename='js/form.js') }}"></script>
+  {% endblock %}

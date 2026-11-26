@@ -21,6 +21,10 @@ EP_CALLS = "/api/calls"
 EP_CALL = "/api/calls/{call_id}"
 EP_CASES = "/api/calls/{call_id}/cases"
 EP_DIARIES = "/api/calls/{call_id}/diaries"
+EP_CALL_INFO = "/api/calls/{call_id}/info"
+EP_CALL_INFO_MARK = "/api/calls/{call_id}/info/{item_id}/mark_incorrect"
+EP_CALL_PROBLEMS = "/api/calls/{call_id}/problems"
+EP_CALL_PROBLEM_MARK = "/api/calls/{call_id}/problems/{item_id}/mark_incorrect"
 EP_PATIENT = "/api/patients/{patient_id}"
 EP_APPOINTMENTS = "/api/patients/{patient_id}/appointments"
 
@@ -153,6 +157,14 @@ def _norm_call(raw):
         "received_at": _pick(raw, "received_at", "created_at"),
         "patient_id": _pick(raw, "patient_id"),
         "patient_name": _pick(raw, "patient_name", "patient_full_name"),
+        # Поля состояния вызова для интерфейса /fe. Реальное API может их
+        # не отдавать — тогда значения по умолчанию, и страницы /fe деградируют
+        # мягечно (без взятия вызовов).
+        "priority": _pick(raw, "priority"),
+        "active_owner": _pick(raw, "active_owner") or None,
+        "status_progress": _pick(raw, "status_progress") or None,
+        "is_completed": bool(raw.get("completed", raw.get("is_completed", False))),
+        "result": _pick(raw, "result") or None,
     }
 
 
@@ -177,6 +189,12 @@ def _norm_case(raw):
         "diagnosis": _pick(raw, "diagnosis"),
         "actions": _pick(raw, "actions"),
         "outcome": _pick(raw, "outcome"),
+        # Поля варианта /fe
+        "author": _pick(raw, "author"),
+        "type": _pick(raw, "type"),
+        "result": _pick(raw, "result"),
+        "text": _pick(raw, "text"),
+        "time": _pick(raw, "created_at"),
     }
 
 
@@ -186,16 +204,31 @@ def _norm_diary(raw):
         "created_at": _pick(raw, "created_at"),
         "author": _pick(raw, "author"),
         "text": _pick(raw, "text"),
+        "type": _pick(raw, "type"),
+        "time": _pick(raw, "created_at"),
+    }
+
+
+def _norm_info(raw):
+    """Запись «информация про пациента» или «проблема на вызове» (интерфейс /fe)."""
+    return {
+        "id": _pick(raw, "id"),
+        "author": _pick(raw, "author"),
+        "type": _pick(raw, "type"),
+        "text": _pick(raw, "text"),
+        "time": _pick(raw, "time"),
+        "incorrect": bool(raw.get("incorrect", False)),
     }
 
 
 def _norm_appointment(raw):
     return {
         "id": _pick(raw, "id"),
-        "specialty": _pick(raw, "specialty"),
+        "specialty": _pick(raw, "specialty", "doctor"),
         "date": _pick(raw, "date"),
         "time": _pick(raw, "time"),
-        "comment": _pick(raw, "comment"),
+        "comment": _pick(raw, "comment", "note"),
+        "created_by": _pick(raw, "created_by"),
     }
 
 
@@ -242,3 +275,35 @@ def create_diary(call_id, values):
 
 def create_appointment(patient_id, values):
     return _request("POST", EP_APPOINTMENTS.format(patient_id=patient_id), values)
+
+
+# --- Управление состоянием вызова и записи интерфейса /fe -------------------
+def update_call(call_id, values):
+    """Взятие/освобождение вызова, этап бригады, завершение (ложный/нормальный)."""
+    return _request("PATCH", EP_CALL.format(call_id=call_id), values)
+
+
+def get_call_info(call_id):
+    data = _request("GET", EP_CALL_INFO.format(call_id=call_id))
+    return [_norm_info(r) for r in _as_list(data, "items") if isinstance(r, dict)]
+
+
+def create_call_info(call_id, values):
+    return _request("POST", EP_CALL_INFO.format(call_id=call_id), values)
+
+
+def mark_call_info_incorrect(call_id, item_id):
+    return _request("POST", EP_CALL_INFO_MARK.format(call_id=call_id, item_id=item_id), {})
+
+
+def get_call_problems(call_id):
+    data = _request("GET", EP_CALL_PROBLEMS.format(call_id=call_id))
+    return [_norm_info(r) for r in _as_list(data, "items") if isinstance(r, dict)]
+
+
+def create_call_problem(call_id, values):
+    return _request("POST", EP_CALL_PROBLEMS.format(call_id=call_id), values)
+
+
+def mark_call_problem_incorrect(call_id, item_id):
+    return _request("POST", EP_CALL_PROBLEM_MARK.format(call_id=call_id, item_id=item_id), {})

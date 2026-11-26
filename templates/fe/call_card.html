@@ -1,0 +1,256 @@
+{% extends "fe/base.html" %}
+{% block title %}Вызов {{ call.number }}{% endblock %}
+
+{% block css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/call_card.css') }}">
+{% endblock %}
+
+{% block content %}
+  <a href="/fe/" class="btn btn-outline btn-back">← К списку вызовов</a>
+
+  <article class="form-card
+    {% if call.is_active_for_me %}form-card-active{% endif %}
+    {% if call.is_completed %}form-card-completed{% endif %}">
+
+    <header class="form-card-head">
+      <div class="form-card-head-main">
+        <div class="form-card-kicker">Карта вызова № {{ call.number }}</div>
+        <h1 class="form-card-title">{{ call.reason }}</h1>
+        <p class="form-card-subtitle">{{ call.patient_name }}</p>
+      </div>
+      <div class="form-card-head-meta">
+        <span class="priority-mark priority-mark-{{ call.priority }}">{{ call.priority_label }}</span>
+        {% if call.distance_km is not none %}
+          <span class="form-card-distance">{{ call.distance_km }} км</span>
+        {% endif %}
+      </div>
+    </header>
+
+    <dl class="form-fields">
+      <div class="form-field">
+        <dt>Адрес</dt>
+        <dd>{{ call.address }}</dd>
+      </div>
+      <div class="form-field">
+        <dt>Телефон</dt>
+        <dd>{{ call.patient_phone }}</dd>
+      </div>
+      <div class="form-field">
+        <dt>Срочность</dt>
+        <dd>{{ call.priority_label }}</dd>
+      </div>
+      <div class="form-field">
+        <dt>Состояние</dt>
+        <dd>
+          {% if call.is_completed %}
+            {% if call.result == 'false' %}Завершён как ложный{% else %}Завершён{% endif %}
+          {% elif call.active_owner %}
+            Взят: {{ call.active_owner }}
+          {% else %}
+            Свободен
+          {% endif %}
+        </dd>
+      </div>
+    </dl>
+
+    {% if call.is_completed %}
+      <p class="form-note form-note-{% if call.result == 'false' %}danger{% else %}success{% endif %}">
+        {% if call.result == 'false' %}Вызов завершён как ложный{% else %}Вызов завершён{% endif %}
+      </p>
+    {% elif call.is_active_for_me %}
+      <p class="form-note form-note-warning">Это ваш активный вызов</p>
+    {% elif call.active_owner %}
+      <p class="form-note form-note-warning">Вызов взят фельдшером {{ call.active_owner }}</p>
+    {% elif active_call_id %}
+      <p class="form-note form-note-warning">У вас уже активный вызов № {{ active_call_id }}</p>
+    {% endif %}
+
+    {% if current_user.role == 'doctor' and call.is_active_for_me %}
+
+      <section class="form-section form-section-stage">
+        <div class="stage-head">
+          <h2 class="form-section-title">Этап бригады</h2>
+          <span class="stage-current-label">{{ call.status_label }}</span>
+        </div>
+        <ol class="stages">
+          <li class="stage {% if call.status_progress in (None, 'accepted') %}stage-current{% endif %}">Принят</li>
+          <li class="stage {% if call.status_progress == 'en_route' %}stage-current{% endif %}">В пути</li>
+          <li class="stage {% if call.status_progress == 'arrived' %}stage-current{% endif %}">Прибыл</li>
+        </ol>
+        <div class="form-actions-row">
+          {% if call.status_progress in (None, 'accepted') %}
+            <form action="/fe/call/{{ call.id }}/status" method="POST">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              <input type="hidden" name="status" value="en_route">
+              <button type="submit" class="btn btn-primary">В путь</button>
+            </form>
+          {% elif call.status_progress == 'en_route' %}
+            <form action="/fe/call/{{ call.id }}/status" method="POST">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              <input type="hidden" name="status" value="arrived">
+              <button type="submit" class="btn btn-primary">Прибыл</button>
+            </form>
+          {% endif %}
+          <a href="/fe/map/route/{{ call.id }}" class="btn btn-outline">Маршрут</a>
+          <a href="{{ url_for('fe.patient_card', patient_id=call.patient_id, call_id=call.id) }}"
+            class="btn btn-outline">
+              Карточка пациента
+          </a>
+        </div>
+      </section>
+
+      <section class="form-section form-section-records">
+        <details class="record-group" {% if patient_info %}open{% endif %}>
+          <summary class="record-group-head">
+            <span class="record-group-title">Информация про пациента</span>
+            <span class="record-group-count">{{ patient_info|length }}</span>
+          </summary>
+          <div class="record-group-body">
+            {% if patient_info %}
+              <ul class="record-list">
+                {% for i in patient_info %}
+                  <li class="record-item {% if i.incorrect %}record-incorrect{% endif %}"
+                      {% if not i.incorrect and i.author == current_user.login %}
+                        data-mark-url="/fe/call/{{ call.id }}/info/{{ i.id }}/mark_incorrect"
+                      {% endif %}>
+                    <span class="record-time">{{ i.time }}</span>
+                    <span class="record-type">{{ i.type }}</span>
+                    {% if i.incorrect %}<span class="record-mark">некорректно</span>{% endif %}
+                    <div class="record-text">{{ i.text }}</div>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="record-empty">Нет записей</p>
+            {% endif %}
+            <div class="form-actions-row">
+              <a class="btn btn-outline" href="/fe/call/{{ call.id }}/info/new">Добавить информацию</a>
+            </div>
+          </div>
+        </details>
+
+        <details class="record-group" {% if problems %}open{% endif %}>
+          <summary class="record-group-head">
+            <span class="record-group-title">Проблемы на вызове</span>
+            <span class="record-group-count">{{ problems|length }}</span>
+          </summary>
+          <div class="record-group-body">
+            {% if problems %}
+              <ul class="record-list">
+                {% for p in problems %}
+                  <li class="record-item {% if p.incorrect %}record-incorrect{% endif %}"
+                      {% if not p.incorrect and p.author == current_user.login %}
+                        data-mark-url="/fe/call/{{ call.id }}/problems/{{ p.id }}/mark_incorrect"
+                      {% endif %}>
+                    <span class="record-time">{{ p.time }}</span>
+                    <span class="record-type">{{ p.type }}</span>
+                    {% if p.incorrect %}<span class="record-mark">некорректно</span>{% endif %}
+                    <div class="record-text">{{ p.text }}</div>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="record-empty">Проблем не зафиксировано</p>
+            {% endif %}
+            <div class="form-actions-row">
+              <a class="btn btn-outline" href="/fe/call/{{ call.id }}/problems/new">Добавить проблему</a>
+            </div>
+          </div>
+        </details>
+
+        <details class="record-group" {% if cases %}open{% endif %}>
+          <summary class="record-group-head">
+            <span class="record-group-title">Случаи обслуживания</span>
+            <span class="record-group-count">{{ cases|length }}</span>
+          </summary>
+          <div class="record-group-body">
+            {% if cases %}
+              <ul class="record-list">
+                {% for c in cases %}
+                  <li class="record-item">
+                    <span class="record-time">{{ c.time }}</span>
+                    <span class="record-type">{{ c.type }}</span>
+                    <div class="record-text">{{ c.text }}</div>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="record-empty">Случаев пока нет</p>
+            {% endif %}
+            <div class="form-actions-row">
+              <a class="btn btn-outline" href="/fe/call/{{ call.id }}/case/new">Добавить случай</a>
+            </div>
+          </div>
+        </details>
+
+        <details class="record-group" {% if diary %}open{% endif %}>
+          <summary class="record-group-head">
+            <span class="record-group-title">Дневник</span>
+            <span class="record-group-count">{{ diary|length }}</span>
+          </summary>
+          <div class="record-group-body">
+            {% if diary %}
+              <ul class="record-list">
+                {% for d in diary %}
+                  <li class="record-item">
+                    <span class="record-time">{{ d.time }}</span>
+                    <span class="record-type">{{ d.type }}</span>
+                    <div class="record-text">{{ d.text }}</div>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="record-empty">Записей нет</p>
+            {% endif %}
+            <div class="form-actions-row">
+              <a class="btn btn-outline" href="/fe/call/{{ call.id }}/diary/new">Добавить в дневник</a>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="form-section form-section-finish">
+        <h2 class="form-section-title">Завершение</h2>
+        <div class="form-actions-row">
+          <form action="/fe/call/{{ call.id }}/complete" method="POST"
+                onsubmit="return confirm('Завершить вызов?');">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-primary">Завершить вызов</button>
+          </form>
+          <form action="/fe/call/{{ call.id }}/false" method="POST"
+                onsubmit="return confirm('Отметить как ложный?');">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline">Ложный вызов</button>
+          </form>
+        </div>
+      </section>
+
+    {% elif current_user.role == 'doctor' and not call.is_completed and not call.active_owner and not active_call_id %}
+      <section class="form-section">
+        <div class="form-actions-row">
+          <form action="/fe/call/{{ call.id }}/accept" method="POST">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-primary">Взять вызов</button>
+          </form>
+          <a href="{{ url_for('fe.patient_card', patient_id=call.patient_id, call_id=call.id) }}"
+            class="btn btn-outline">
+              Карточка пациента
+          </a>
+        </div>
+      </section>
+    {% else %}
+      <section class="form-section">
+        <div class="form-actions-row">
+          <a href="/fe/patient/{{ call.patient_id }}" class="btn btn-outline">Карточка пациента</a>
+          {% if current_user.role in ('admin', 'superadmin') %}
+            <a href="{{ url_for('fe.admin_map_call', call_id=call.id) }}" class="btn btn-outline">Показать на карте</a>
+          {% endif %}
+        </div>
+      </section>
+    {% endif %}
+  </article>
+{% endblock %}
+
+{% block js %}
+  <script src="{{ url_for('static', filename='js/call_card.js') }}"></script>
+{% endblock %}

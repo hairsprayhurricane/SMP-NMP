@@ -1,0 +1,212 @@
+{% extends "fe/base.html" %}
+{% block title %}Список вызовов{% endblock %}
+
+{% block css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/calls_list.css') }}">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+{% endblock %}
+
+{% block content %}
+  {% if current_user.role == 'doctor' and my_active_call %}
+    <section class="active-call-hero">
+      <div class="active-call-hero-head">
+        <span class="active-call-hero-badge">🎯 Ваш активный вызов</span>
+        <span class="active-call-hero-distance">
+          {% if my_active_call.distance_km is not none %}
+            🚑 ≈ {{ my_active_call.distance_km }} км
+          {% endif %}
+        </span>
+      </div>
+      <h1 class="active-call-hero-title">{{ my_active_call.patient_name }}</h1>
+      <p class="active-call-hero-address">📍 {{ my_active_call.address }}</p>
+      <p class="active-call-hero-phone">📞 {{ my_active_call.patient_phone }}</p>
+      <div class="active-call-hero-actions">
+        <a href="/fe/call/{{ my_active_call.id }}" class="btn btn-primary btn-block">
+          Открыть вызов
+        </a>
+        <a href="/fe/map/route/{{ my_active_call.id }}" class="btn btn-outline btn-block">
+          🧭 Маршрут
+        </a>
+      </div>
+    </section>
+  {% endif %}
+
+  {% if current_user.role == 'doctor' and not my_active_call %}
+    <div class="doctor-idle-banner">
+      <span class="doctor-idle-icon" aria-hidden="true">🩺</span>
+      <div>
+        <strong>Нет активного вызова.</strong>
+        Возьмите вызов из списка ниже — он появится здесь как главный экран.
+      </div>
+    </div>
+  {% endif %}
+
+  <section class="page-hero">
+    <div class="page-hero-main">
+      <h1 class="page-hero-title">
+        {% if current_user.role == 'doctor' and my_active_call %}Свободные вызовы
+        {% else %}Диспетчерская{% endif %}
+      </h1>
+      <p class="page-hero-sub">
+        {% if current_user.role in ('admin', 'superadmin') %}
+          Обзор вызовов, машин и маршрутов скорой помощи
+        {% else %}
+          Вызовы, которые можно взять
+        {% endif %}
+      </p>
+    </div>
+    <div class="page-hero-meta">
+      <div class="hero-stat">
+        <span class="hero-stat-value">{{ total }}</span>
+        <span class="hero-stat-label">вызовов</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-value">{{ page }}/{{ total_pages }}</span>
+        <span class="hero-stat-label">страница</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="page-head">
+    <div class="page-actions">
+      <button type="button" id="map-toggle-btn" class="btn btn-outline">
+        🗺️ Карта <span class="map-toggle-state">[off]</span>
+      </button>
+
+      {% if current_user.role in ('admin', 'superadmin') %}
+        <button type="button" id="list-toggle-btn" class="btn btn-outline">
+          📋 Показать список вызовов <span class="list-toggle-state">[{{ 'on' if list_on else 'off' }}]</span>
+        </button>
+      {% endif %}
+
+      {% if current_user.role == 'doctor' %}
+        <button type="button" id="sort-distance-btn"
+                class="btn btn-outline {% if view == 'nearest' %}btn-active{% endif %}">
+          📍 Ближайший вызов
+        </button>
+      {% endif %}
+
+      <a href="/fe/" id="refresh-btn" class="btn btn-outline">🔄 Обновить</a>
+    </div>
+  </div>
+
+  <div id="content-area" {% if current_user.role in ('admin', 'superadmin') and not list_on %}style="display:none;"{% endif %}>
+    <form method="GET" action="/fe/" class="search-form" id="search-form" onsubmit="return false;">
+      <div class="search-input-wrap" id="search-input-wrap">
+        <div id="phone-mask-view" class="phone-mask-view" hidden></div>
+        <input id="calls-search" name="q" class="search-input"
+               type="search" placeholder="Поиск по базе вызовов"
+               value="{{ q }}">
+      </div>
+
+      <div class="search-field-wrap">
+        <button type="button" id="field-toggle" class="btn btn-outline search-field-btn">
+          <span id="field-label">
+            {% if field == 'address' %}Поиск по адресу
+            {% elif field == 'phone' %}Поиск по номеру телефона
+            {% else %}Поиск по ФИО{% endif %}
+          </span>
+          <span class="caret">▾</span>
+        </button>
+
+        <ul id="field-menu" class="search-field-menu" hidden>
+          <li><button type="button" data-field="name">Поиск по ФИО</button></li>
+          <li><button type="button" data-field="address">Поиск по адресу</button></li>
+          <li><button type="button" data-field="phone">Поиск по номеру телефона</button></li>
+        </ul>
+      </div>
+
+      <input type="hidden" name="field" id="field-input" value="{{ field }}">
+      <input type="hidden" name="view" id="view-input" value="{{ view }}">
+    </form>
+
+    <div id="results" data-view="{{ view }}">
+      {% include "fe/_calls_results.html" %}
+    </div>
+  </div>
+
+  <div class="map-page" id="map-shell" style="display:none;">
+    {% if current_user.role in ('admin', 'superadmin') %}
+      <div class="map-page-head">
+        <div class="map-page-head-main">
+          <h2 class="map-page-title">Карта вызовов</h2>
+          <p class="map-page-sub">
+            Машины скорой помощи, вызовы и активные маршруты на карте города
+          </p>
+        </div>
+        <div class="map-page-metrics">
+          <div class="map-metric">
+            <span class="map-metric-value" id="metric-calls">0</span>
+            <span class="map-metric-label">вызовов</span>
+          </div>
+          <div class="map-metric">
+            <span class="map-metric-value" id="metric-ambulances">0</span>
+            <span class="map-metric-label">машин</span>
+          </div>
+          <div class="map-metric">
+            <span class="map-metric-value" id="metric-active">0</span>
+            <span class="map-metric-label">на вызове</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="map-page-body">
+        <div class="map-page-aside">
+          <div class="map-panel">
+            <h3 class="map-panel-title">Слои карты</h3>
+            <div class="map-layers-buttons" aria-label="Слои карты">
+              <button type="button" id="layer-btn-ambulances"
+                      class="map-layer-btn is-active" data-layer="ambulances"
+                      aria-pressed="true" title="Машины скорой помощи">
+                <span class="map-layer-btn-icon" aria-hidden="true">🚑</span>
+                <span class="map-layer-btn-label">Машины</span>
+              </button>
+              <button type="button" id="layer-btn-calls"
+                      class="map-layer-btn is-active" data-layer="calls"
+                      aria-pressed="true" title="Вызовы скорой помощи">
+                <span class="map-layer-btn-icon" aria-hidden="true">📍</span>
+                <span class="map-layer-btn-label">Вызовы</span>
+              </button>
+              <button type="button" id="layer-btn-active"
+                      class="map-layer-btn" data-layer="active"
+                      aria-pressed="false" title="Скорые на вызове">
+                <span class="map-layer-btn-icon" aria-hidden="true">🎯</span>
+                <span class="map-layer-btn-label">На вызове</span>
+              </button>
+            </div>
+            <p class="map-panel-hint">
+              Нажимайте на слой, чтобы показать или скрыть объекты на карте.
+            </p>
+          </div>
+        </div>
+
+        <div class="map-frame">
+          <div class="map-square">
+            <div id="map" class="map-container"
+                 data-active-call-id="{{ active_call_id or '' }}"
+                 data-accept-id="{{ accept_id or '' }}"
+                 data-role="{{ current_user.role }}"
+                 data-focus-call="{{ focus_call or '' }}"
+                 {% if map_on %}data-init-map="1"{% endif %}></div>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="map-frame map-frame-solo">
+        <div class="map-square">
+          <div id="map" class="map-container"
+               data-active-call-id="{{ active_call_id or '' }}"
+               data-accept-id="{{ accept_id or '' }}"
+               data-role="{{ current_user.role }}"
+               data-focus-call="{{ focus_call or '' }}"
+               {% if map_on %}data-init-map="1"{% endif %}></div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block js %}
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='js/calls_list.js') }}"></script>
+{% endblock %}

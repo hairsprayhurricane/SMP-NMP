@@ -1,0 +1,68 @@
+<div id="calls-container">
+  {% for call in calls %}
+    <article class="call-card call-priority-{{ call.priority }}
+      {% if call.is_active_for_me %}call-is-active{% endif %}
+      {% if call.is_completed %}call-is-completed{% endif %}">
+      <a href="/fe/call/{{ call.id }}" class="call-card-link">
+        <div class="call-top">
+          <span class="priority-mark priority-mark-{{ call.priority }}">{{ call.priority_label }}</span>
+          <span class="call-number">№ {{ call.number }}</span>
+        </div>
+        <div class="call-reason">{{ call.reason }}</div>
+        <h2 class="call-title">{{ call.patient_name }}</h2>
+        <p class="call-address">📍 {{ call.address }}</p>
+        {% if call.distance_km is not none %}
+          <p class="call-distance">🚑 ≈ {{ call.distance_km }} км</p>
+        {% endif %}
+        <p class="call-phone">📞 {{ call.patient_phone }}</p>
+      </a>
+
+      {% if call.is_completed %}
+        <p class="call-badge call-badge-completed">
+          {% if call.result == 'false' %}Завершён как ложный{% else %}Завершён{% endif %}
+        </p>
+      {% elif call.is_active_for_me %}
+        <p class="call-badge call-badge-active">Ваш активный вызов</p>
+        <a href="/fe/call/{{ call.id }}" class="btn btn-primary btn-block">Открыть вызов</a>
+      {% elif call.active_owner %}
+        <p class="call-badge call-badge-completed">Взят: {{ call.active_owner }}</p>
+      {% else %}
+        {% if current_user.role == 'doctor' %}
+          {% if active_call_id %}
+            <button type="button" class="btn btn-outline btn-block" disabled>
+              Есть активный вызов
+            </button>
+          {% else %}
+            <form action="/fe/call/{{ call.id }}/accept" method="POST" class="accept-form">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-primary btn-block">Взять вызов</button>
+            </form>
+          {% endif %}
+        {% else %}
+          <p class="call-badge call-badge-completed">Свободен</p>
+          <a href="/fe/call/{{ call.id }}" class="btn btn-outline btn-block">Подробнее</a>
+        {% endif %}
+      {% endif %}
+    </article>
+  {% else %}
+    <div class="notice notice-muted">
+      {% if q %}Ничего не найдено по запросу «{{ q_display }}»{% else %}Нет свободных вызовов{% endif %}
+    </div>
+  {% endfor %}
+</div>
+
+{% if total_pages > 1 %}
+  <nav class="pagination" id="pagination" data-page="{{ page }}">
+    {% if page > 1 %}
+      <a class="btn btn-outline pagination-link" data-page="{{ page-1 }}" href="#">← Назад</a>
+    {% else %}
+      <span class="btn btn-outline btn-disabled">← Назад</span>
+    {% endif %}
+    <span class="pagination-info">{{ page }}/{{ total_pages }}</span>
+    {% if page < total_pages %}
+      <a class="btn btn-outline pagination-link" data-page="{{ page+1 }}" href="#">Вперёд →</a>
+    {% else %}
+      <span class="btn btn-outline btn-disabled">Вперёд →</span>
+    {% endif %}
+  </nav>
+{% endif %}

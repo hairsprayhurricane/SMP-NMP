@@ -1,0 +1,9 @@
+{% extends "fe/base.html" %}
+{% block title %}Ошибка {{ code }}{% endblock %}
+{% block content %}
+  <div class="error-card">
+    <h1 class="error-code">{{ code }}</h1>
+    <p class="error-text">{{ message }}</p>
+    <a href="{{ url_for('fe.calls_list') }}" class="btn btn-primary">На главную</a>
+  </div>
+{% endblock %}

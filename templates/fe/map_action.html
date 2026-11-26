@@ -1,0 +1,33 @@
+{% extends "fe/base.html" %}
+{% block title %}Действия по вызову #{{ call.number }}{% endblock %}
+
+{% block css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/map_action.css') }}">
+{% endblock %}
+
+{% block content %}
+  <div class="map-action-page">
+    <a href="javascript:history.back()" class="btn btn-outline btn-back">← Вернуться обратно</a>
+
+    <h1 class="page-title">Вызов #{{ call.number }}</h1>
+    <p class="map-action-patient">{{ call.patient_name }}</p>
+    <p class="map-action-address">📍 {{ call.address }}</p>
+    {% if call.distance_km is not none %}
+      <p class="map-action-distance">🚑 ≈ {{ call.distance_km }} км от скорой</p>
+    {% endif %}
+
+    <div class="map-action-buttons">
+      <a href="/fe/map/route/{{ call.id }}" class="btn btn-primary btn-block">
+        🧭 Построить оптимальный маршрут по адресу {{ call.address }}
+      </a>
+
+      <a href="/fe/patient/{{ call.patient_id }}" class="btn btn-secondary btn-block">
+        👤 Данные о пациенте
+      </a>
+
+      <a href="javascript:history.back()" class="btn btn-outline btn-block">
+        ← Вернуться обратно
+      </a>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "fe/base.html" %}
+{% block title %}Карта вызова {{ call.number }}{% endblock %}
+
+{% block css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_map_call.css') }}">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+{% endblock %}
+
+{% block content %}
+  <a href="/fe/call/{{ call.id }}" class="btn btn-outline btn-back">← К карточке вызова</a>
+
+  <section class="watch-hero">
+    <div class="watch-hero-main">
+      <div class="watch-hero-kicker">Наблюдение за вызовом № {{ call.number }}</div>
+      <h1 class="watch-hero-title">{{ call.reason }}</h1>
+      <p class="watch-hero-sub">{{ call.patient_name }} · {{ call.address }}</p>
+    </div>
+    <div class="watch-hero-meta">
+      <span class="priority-mark priority-mark-{{ call.priority }}">{{ call.priority_label }}</span>
+      {% if call.distance_km is not none %}
+        <span class="watch-hero-distance">{{ call.distance_km }} км</span>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="watch-info">
+    <div class="watch-info-cell">
+      <dt>Статус вызова</dt>
+      <dd>
+        {% if call.is_completed %}
+          {% if call.result == 'false' %}Завершён как ложный{% else %}Завершён{% endif %}
+        {% elif call.active_owner %}
+          Взят: {{ owner_name or call.active_owner }}
+        {% else %}
+          Свободен
+        {% endif %}
+      </dd>
+    </div>
+    <div class="watch-info-cell">
+      <dt>Этап бригады</dt>
+      <dd>{{ call.status_label }}</dd>
+    </div>
+    <div class="watch-info-cell">
+      <dt>Машина</dt>
+      <dd>
+        {% if owner_name %}{{ owner_name }}
+        {% else %}Не назначена{% endif %}
+      </dd>
+    </div>
+    <div class="watch-info-cell">
+      <dt>Маршрут</dt>
+      <dd id="watch-route-status">
+        {% if owner_name %}Строится…{% else %}Нет данных{% endif %}
+      </dd>
+    </div>
+  </section>
+
+  <div class="watch-map-frame">
+    <div class="watch-map-square">
+      <div id="watch-map" class="watch-map"
+           data-call-id="{{ call.id }}"
+           data-call-lat="{{ call.lat }}"
+           data-call-lng="{{ call.lng }}"
+           data-call-reason="{{ call.reason }}"
+           data-call-patient="{{ call.patient_name }}"
+           data-call-address="{{ call.address }}"
+           data-owner-name="{{ owner_name or '' }}"
+           data-owner-lat="{{ owner_lat if owner_lat is not none else '' }}"
+           data-owner-lng="{{ owner_lng if owner_lng is not none else '' }}"></div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block js %}
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='js/admin_map_call.js') }}"></script>
+{% endblock %}

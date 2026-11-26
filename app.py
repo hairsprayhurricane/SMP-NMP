@@ -4,15 +4,21 @@
 сохраняются. Локальная SQL-база (db.py) хранит только пользователей, роли, права
 и журнал действий.
 
-Запуск для разработки:  python app.py
+Помимо корневых экранов приложение включает второй набор страниц из ветки
+Frontend (модуль fe_views.py, префикс /fe: список вызовов, карта, карточки).
+
+Запуск для разработки:  python app.py  (слушает только 127.0.0.1)
 Боевой запуск:          gunicorn -w 2 -b 0.0.0.0:8000 app:app
+
+Внешние подключения принимает только Gunicorn — встроенный сервер Flask
+привязан к 127.0.0.1 и доступен лишь с самой машины.
 """
 import hmac
 import logging
 import os
 import secrets
 import sqlite3
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from logging.handlers import RotatingFileHandler
 
 from flask import Flask, abort, flash, g, redirect, render_template, request, session, url_for
@@ -22,6 +28,7 @@ import api_client as api
 import auth
 import config
 import db
+import fe_views
 import maps
 from api_client import ApiError, NotFoundError
 from auth import permission_required
@@ -72,6 +79,7 @@ if config.TRUST_PROXY:
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 app.register_blueprint(auth.bp)
+app.register_blueprint(fe_views.bp)
 app.teardown_appcontext(db.close_db)
 
 if config.SECRET_KEY_SOURCE == "file":
@@ -131,6 +139,29 @@ OUTCOMES = [
     "Отказ от помощи",
 ]
 
+# Максимальная длина полей форм: сохраняется в API без обрезки, поэтому
+# проверяем на входе, чтобы пользователю не приходилось гадать.
+FIELD_LIMITS = {
+    "complaints": (2000, "жалобы"),
+    "diagnosis": (500, "диагноз"),
+    "actions": (2000, "оказанная помощь"),
+    "outcome": (200, "исход"),
+    "specialty": (100, "врач"),
+    "comment": (500, "комментарий"),
+    "time": (5, "время"),
+    "date": (10, "дата"),
+    "text": (5000, "текст"),
+}
+
+
+def _validate_lengths(values, fields):
+    """Проверка длины полей; возвращает текст ошибки или None."""
+    for f in fields:
+        limit, label = FIELD_LIMITS[f]
+        if len(values.get(f, "")) > limit:
+            return "Поле «%s» слишком длинное: не более %d символов." % (label, limit)
+    return None
+
 
 def _csrf_token():
     """Токен защиты форм от отправки с чужих страниц (CSRF), хранится в сессии."""
@@ -171,6 +202,10 @@ def inject_globals():
 def _permissions_policy(resp):
     """Геолокацию разрешаем только страницам самого приложения; камера и микрофон не нужны."""
     resp.headers.setdefault("Permissions-Policy", "geolocation=(self), camera=(), microphone=()")
+    # Страницы ошибок не кешируются: браузер не должен показывать устаревший
+    # экран вместо повторного запроса.
+    if resp.status_code >= 400:
+        resp.headers.setdefault("Cache-Control", "no-store")
     return resp
 
 
@@ -201,7 +236,7 @@ def call_detail(call_id):
     except NotFoundError:
         return render_template("error.html", code=404, message="Вызов не найден."), 404
     except ApiError as exc:
-        return render_template("error.html", code=502, message=exc.user_message), 200
+        return render_template("error.html", code=502, message=exc.user_message), 502
     _audit("call.view", "call", call_id)
 
     # Случаи и дневники — дополнительные данные: их недоступность не ломает страницу.
@@ -232,7 +267,7 @@ def patient_detail(patient_id):
     except NotFoundError:
         return render_template("error.html", code=404, message="Пациент не найден."), 404
     except ApiError as exc:
-        return render_template("error.html", code=502, message=exc.user_message), 200
+        return render_template("error.html", code=502, message=exc.user_message), 502
     _audit("patient.view", "patient", patient_id)
 
     appointments, appointments_failed = [], False
@@ -302,6 +337,7 @@ def case_new(call_id):
             "actions": "оказанная помощь",
             "outcome": "исход",
         },
+        validate=lambda v: _validate_lengths(v, ("complaints", "diagnosis", "actions", "outcome")),
         send=lambda v: api.create_case(call_id, v),
         success_url=url_for("call_detail", call_id=call_id),
         success_msg="Случай медицинского обслуживания добавлен.",
@@ -315,25 +351,37 @@ def case_new(call_id):
 @app.route("/call/<call_id>/diary/new", methods=["GET", "POST"])
 @permission_required("diaries.add")
 def diary_new(call_id):
+    # Поле «автор» не редактируется пользователем: оно подставляется из учётной
+    # записи вошедшего сотрудника (g.user) и в HTML-форме не выводится.
     return _form_view(
         "form_diary.html",
-        fields=["author", "text"],
-        required={"author": "автор", "text": "текст"},
-        send=lambda v: api.create_diary(call_id, v),
+        fields=["text"],
+        required={"text": "текст"},
+        validate=lambda v: _validate_lengths(v, ("text",)),
+        send=lambda v: api.create_diary(call_id, {"author": g.user["full_name"], **v}),
         success_url=url_for("call_detail", call_id=call_id),
         success_msg="Дневник добавлен.",
         log_msg="Добавлен дневник по вызову %s" % call_id,
         audit=("diary.add", "call", call_id),
-        initial={"author": g.user["full_name"]},
+        author=g.user["full_name"],
         call_id=call_id,
     )
 
 
 def _validate_appointment(values):
+    """Дата/время приёма: формат, не прошлое, не 00:00 (пустое значение поля time)."""
     try:
         day = datetime.strptime(values["date"], "%Y-%m-%d").date()
     except ValueError:
         return "Некорректная дата приёма."
+    try:
+        moment = datetime.strptime(values["time"], "%H:%M").time()
+    except ValueError:
+        return "Некорректное время приёма (нужен формат ЧЧ:ММ)."
+    if moment == time(0, 0):
+        return "Время 00:00 недопустимо: укажите реальное время приёма."
+    if datetime.combine(day, moment) <= datetime.now():
+        return "Дата и время приёма не могут быть в прошлом."
     if day < date.today():
         return "Дата приёма не может быть в прошлом."
     return None
@@ -352,7 +400,7 @@ def appointment_new(patient_id):
         success_msg="Пациент записан на приём.",
         log_msg="Создана запись на приём для пациента %s" % patient_id,
         audit=("appointment.add", "patient", patient_id),
-        validate=_validate_appointment,
+        validate=lambda v: _validate_appointment(v) or _validate_lengths(v, ("specialty", "comment")),
         patient_id=patient_id,
         call_id=call_id,
         specialties=SPECIALTIES,
@@ -391,4 +439,5 @@ def handle_unexpected(exc):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "8000")), debug=False)
+    # Только 127.0.0.1: наружу приложение отдаёт Gunicorn (см. docstring).
+    app.run(host="127.0.0.1", port=int(os.getenv("PORT", "8000")), debug=False)

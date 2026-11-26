@@ -1,0 +1,50 @@
+{% extends "fe/base.html" %}
+{% block title %}Маршрут к вызову #{{ call.number }}{% endblock %}
+
+{% block css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/map_route.css') }}">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+{% endblock %}
+
+{% block content %}
+  <div class="map-route-page">
+    <a href="/fe/call/{{ call.id }}" class="btn btn-outline btn-back">← Назад к вызову</a>
+
+    <h1 class="page-title">Маршрут к вызову #{{ call.number }}</h1>
+    <p class="map-route-info">📍 {{ call.address }} — {{ call.patient_name }}</p>
+
+    <div id="route-status" class="route-status">
+      Определяем ваше местоположение…
+    </div>
+
+    <div id="route-map" class="route-map" style="height:60vh; min-height:400px; width:100%;"></div>
+
+    <div class="route-actions">
+      <button type="button" id="retry-geo-btn" class="btn btn-outline btn-block">
+        📍 Повторить запрос геолокации
+      </button>
+      <button type="button" id="manual-locate-btn" class="btn btn-outline btn-block">
+        🖐 Указать местоположение на карте
+      </button>
+      <button type="button" id="recalc-btn" class="btn btn-outline btn-block">
+        🔄 Перестроить маршрут
+      </button>
+    </div>
+
+    <p class="route-hint">
+      Маршрут строится через публичный OSRM. Тайлы карты кэшируются
+      локально при просмотре и далее доступны без интернета.
+      Если браузер блокирует геолокацию — нажмите «Повторить запрос» или
+      укажите местоположение вручную кликом по карте.
+    </p>
+  </div>
+
+  <script id="route-data" type="application/json">
+    {{ {"to_lat": call.lat, "to_lng": call.lng, "address": call.address}|tojson }}
+  </script>
+{% endblock %}
+
+{% block js %}
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='js/map_route.js') }}"></script>
+{% endblock %}

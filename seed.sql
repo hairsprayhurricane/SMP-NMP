@@ -19,7 +19,8 @@ INSERT OR IGNORE INTO permissions (code, title) VALUES
     ('diaries.add',      'Добавление «Дневника»'),
     ('appointments.add', 'Запись пациента на приём'),
     ('portal.open',      'Переход на портал врача'),
-    ('users.manage',     'Страница администратора: пользователи и журнал');
+    ('users.manage',     'Страница администратора: пользователи и журнал'),
+    ('calls.manage',      'Взятие вызова, этап бригады, завершение (интерфейс /fe)');
 
 -- Права по умолчанию
 INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
@@ -27,6 +28,6 @@ SELECT r.id, p.id
 FROM roles r
 JOIN permissions p ON
        r.code = 'admin'
-    OR (r.code = 'doctor'     AND p.code IN ('calls.view', 'patients.view', 'cases.add', 'diaries.add', 'appointments.add', 'portal.open'))
-    OR (r.code = 'paramedic'  AND p.code IN ('calls.view', 'patients.view', 'cases.add', 'diaries.add', 'portal.open'))
+    OR (r.code = 'doctor'     AND p.code IN ('calls.view', 'patients.view', 'cases.add', 'diaries.add', 'appointments.add', 'portal.open', 'calls.manage'))
+    OR (r.code = 'paramedic'  AND p.code IN ('calls.view', 'patients.view', 'cases.add', 'diaries.add', 'portal.open', 'calls.manage'))
     OR (r.code = 'dispatcher' AND p.code IN ('calls.view'));

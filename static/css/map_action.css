@@ -1,0 +1,45 @@
+.map-action-page {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem 0;
+}
+
+.map-action-page .btn-back {
+  margin-bottom: 1rem;
+}
+
+.map-action-page .page-title {
+  margin-bottom: 0.25rem;
+}
+
+.map-action-patient {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.map-action-address {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  margin: 0 0 0.5rem;
+}
+
+.map-action-distance {
+  color: var(--warning);
+  font-weight: 600;
+  margin: 0 0 1.5rem;
+}
+
+.map-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.map-action-buttons .btn {
+  min-height: 64px;
+  font-size: 18px;
+  text-align: center;
+  line-height: 1.3;
+}
