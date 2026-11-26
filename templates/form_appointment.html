@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Запись на приём — СМП/НМП{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">Записать пациента на приём к врачу</h1>
+<p class="text-muted">Пациент №{{ patient_id }}</p>
+
+<form method="post" class="card shadow-sm card-body">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <div class="mb-3">
+    <label for="specialty" class="form-label">Врач *</label>
+    <select class="form-select form-select-lg" id="specialty" name="specialty" required>
+      <option value="">— выберите —</option>
+      {% for s in specialties %}
+      <option value="{{ s }}" {% if values.specialty == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="row g-3 mb-3">
+    <div class="col-12 col-sm-6">
+      <label for="date" class="form-label">Дата *</label>
+      <input type="date" class="form-control form-control-lg" id="date" name="date" min="{{ today }}" value="{{ values.date }}" required>
+    </div>
+    <div class="col-12 col-sm-6">
+      <label for="time" class="form-label">Время *</label>
+      <input type="time" class="form-control form-control-lg" id="time" name="time" value="{{ values.time }}" required>
+    </div>
+  </div>
+  <div class="mb-4">
+    <label for="comment" class="form-label">Комментарий</label>
+    <textarea class="form-control form-control-lg" id="comment" name="comment" rows="3">{{ values.comment }}</textarea>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <button type="submit" class="btn btn-success btn-lg">Сохранить</button>
+    <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('patient_detail', patient_id=patient_id, call=call_id or None) }}">Отмена</a>
+  </div>
+</form>
+{% endblock %}

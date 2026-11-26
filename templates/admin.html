@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Администрирование — СМП/НМП{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">Администрирование</h1>
+<p class="text-muted">Страница только для просмотра. Пользователей создают и меняют командой <code>python manage.py</code> (см. README).</p>
+
+<h2 class="h5 mt-4">Пользователи</h2>
+<div class="table-responsive card shadow-sm mb-4">
+  <table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Логин</th><th>ФИО</th><th>Роль</th><th>Статус</th><th>Последний вход (UTC)</th></tr></thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.username }}</td>
+        <td>{{ u.full_name }}</td>
+        <td>{{ u.role_title }}</td>
+        <td>{% if u.is_active %}активен{% else %}<span class="text-danger">отключён</span>{% endif %}</td>
+        <td>{{ u.last_login_at or "—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2 class="h5">Роли и права</h2>
+<div class="table-responsive card shadow-sm mb-4">
+  <table class="table table-sm align-top mb-0">
+    <thead><tr><th>Роль</th><th>Что разрешено</th></tr></thead>
+    <tbody>
+      {% for title, perms in role_matrix %}
+      <tr><td class="text-nowrap">{{ title }}</td><td>{{ perms | join("; ") }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2 class="h5">Журнал действий (последние 50)</h2>
+<div class="table-responsive card shadow-sm">
+  <table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Время (UTC)</th><th>Пользователь</th><th>Действие</th><th>Объект</th><th>IP</th></tr></thead>
+    <tbody>
+      {% for e in events %}
+      <tr>
+        <td class="text-nowrap">{{ e.at }}</td>
+        <td>{{ e.username or "—" }}</td>
+        <td>{{ e.action }}</td>
+        <td>{% if e.object_type %}{{ e.object_type }} {{ e.object_id }}{% else %}—{% endif %}</td>
+        <td>{{ e.ip or "—" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="text-muted">Записей пока нет.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

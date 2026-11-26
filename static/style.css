@@ -1,0 +1,10 @@
+/* Поверх Bootstrap: крупные цели для нажатия на планшете */
+body { font-size: 1.05rem; }
+.btn { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; }
+.btn.w-100 { display: flex; }
+.form-control, .form-select { min-height: 48px; }
+.card { border-radius: .75rem; }
+.alert { font-size: 1.05rem; }
+[hidden] { display: none !important; }
+.call-map { height: 320px; width: 100%; border-radius: .5rem; background: #e9ecef; }
+@media (min-width: 992px) { .call-map { height: 380px; } }

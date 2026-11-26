@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Новый случай — СМП/НМП{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">Добавить случай медицинского обслуживания</h1>
+<p class="text-muted">Вызов №{{ call_id }}</p>
+
+<form method="post" class="card shadow-sm card-body">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <div class="mb-3">
+    <label for="complaints" class="form-label">Жалобы *</label>
+    <textarea class="form-control form-control-lg" id="complaints" name="complaints" rows="3" required>{{ values.complaints }}</textarea>
+  </div>
+  <div class="mb-3">
+    <label for="diagnosis" class="form-label">Диагноз *</label>
+    <input class="form-control form-control-lg" id="diagnosis" name="diagnosis" value="{{ values.diagnosis }}" required>
+  </div>
+  <div class="mb-3">
+    <label for="actions" class="form-label">Оказанная помощь *</label>
+    <textarea class="form-control form-control-lg" id="actions" name="actions" rows="3" required>{{ values.actions }}</textarea>
+  </div>
+  <div class="mb-4">
+    <label for="outcome" class="form-label">Исход *</label>
+    <select class="form-select form-select-lg" id="outcome" name="outcome" required>
+      <option value="">— выберите —</option>
+      {% for o in outcomes %}
+      <option value="{{ o }}" {% if values.outcome == o %}selected{% endif %}>{{ o }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <button type="submit" class="btn btn-success btn-lg">Сохранить</button>
+    <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('call_detail', call_id=call_id) }}">Отмена</a>
+  </div>
+</form>
+{% endblock %}

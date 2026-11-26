@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ patient.full_name }} — СМП/НМП{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap gap-2 mb-3">
+  {% if call_id %}
+  <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('call_detail', call_id=call_id) }}">Назад к вызову</a>
+  {% else %}
+  <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('index') }}">Назад к списку</a>
+  {% endif %}
+  {% if can('appointments.add') %}
+  <a class="btn btn-success btn-lg" href="{{ url_for('appointment_new', patient_id=patient.id, call=call_id or None) }}">Записать на приём к врачу</a>
+  {% endif %}
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <h1 class="h3 mb-3">{{ patient.full_name }}</h1>
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Дата рождения</dt><dd class="col-sm-9">{{ patient.birth_date }}</dd>
+      <dt class="col-sm-3">Пол</dt><dd class="col-sm-9">{{ patient.gender }}</dd>
+      <dt class="col-sm-3">Полис ОМС</dt><dd class="col-sm-9">{{ patient.oms_policy }}</dd>
+      <dt class="col-sm-3">Телефон</dt><dd class="col-sm-9">{{ patient.phone }}</dd>
+      <dt class="col-sm-3">Аллергии</dt><dd class="col-sm-9">{{ patient.allergies or "не указаны" }}</dd>
+      <dt class="col-sm-3">Хронические заболевания</dt><dd class="col-sm-9 mb-0">{{ patient.chronic_diseases or "не указаны" }}</dd>
+    </dl>
+  </div>
+</div>
+
+<h2 class="h5">Записи на приём</h2>
+{% if appointments_failed %}
+<p class="text-muted">Записи на приём сейчас недоступны.</p>
+{% else %}
+  {% for a in appointments %}
+  <div class="card mb-2"><div class="card-body">
+    <strong>{{ a.specialty }}</strong> — {{ a.date }} в {{ a.time }}
+    {% if a.comment %}<div class="text-muted">{{ a.comment }}</div>{% endif %}
+  </div></div>
+  {% else %}
+  <p class="text-muted">Пока нет.</p>
+  {% endfor %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Ошибка — СМП/НМП{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body text-center py-5">
+    <h1 class="h4 mb-3">{{ message }}</h1>
+    <p class="text-muted">Приложение продолжает работать — можно вернуться к списку или повторить действие.</p>
+    <div class="d-flex justify-content-center gap-2 flex-wrap">
+      <a class="btn btn-primary btn-lg" href="{{ url_for('index') }}">К списку вызовов</a>
+      <a class="btn btn-outline-secondary btn-lg" href="javascript:location.reload()">Повторить</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Вызов {{ call.number }} — СМП/НМП{% endblock %}
+
+{% block head_extra %}
+{% if map_info.embedded %}
+  {% if leaflet_local %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.css') }}">
+  {% else %}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+  {% endif %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if map_info.embedded %}
+  {% if leaflet_local %}
+  <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
+  {% else %}
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  {% endif %}
+{% endif %}
+{% if map_info.has_point %}
+<script src="{{ url_for('static', filename='map.js') }}"></script>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('index') }}">Назад к списку</a>
+  {% if call.patient_id and can('patients.view') %}
+  <a class="btn btn-outline-primary btn-lg" href="{{ url_for('patient_detail', patient_id=call.patient_id, call=call.id) }}">Карточка пациента</a>
+  {% endif %}
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+      <h1 class="h3 mb-0">Вызов {{ call.number }}</h1>
+      <span class="badge text-bg-{{ status_class(call.status) }} fs-6">{{ call.status }}</span>
+    </div>
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Адрес</dt><dd class="col-sm-9">{{ call.address }}</dd>
+      <dt class="col-sm-3">Повод</dt><dd class="col-sm-9">{{ call.reason }}</dd>
+      <dt class="col-sm-3">Поступил</dt><dd class="col-sm-9">{{ call.received_at }}</dd>
+      <dt class="col-sm-3">Пациент</dt><dd class="col-sm-9 mb-0">{{ call.patient_name or "не указан" }}</dd>
+    </dl>
+  </div>
+</div>
+
+{% if map_info.show %}
+<section class="card shadow-sm mb-3" aria-labelledby="map-title">
+  <div class="card-body">
+    <h2 class="h5 mb-3" id="map-title">Карта</h2>
+    {% if map_info.embedded %}
+    <div id="call-map" class="call-map"
+         data-lat="{{ '%.6f' % map_info.lat }}" data-lon="{{ '%.6f' % map_info.lon }}"
+         data-zoom="{{ map_info.zoom }}" data-tiles="{{ map_info.tiles }}"
+         data-attribution="{{ map_info.attribution }}"
+         role="region" aria-label="Карта места вызова"></div>
+    <p id="map-note" class="small text-muted mt-2 mb-0" hidden>Карта загрузилась не полностью: нет связи с сервером карт. Адрес вызова и кнопки ниже работают.</p>
+    {% elif not map_info.has_point %}
+    <p class="text-muted mb-0">Для этого вызова нет координат, поэтому карта не показана. Адрес можно открыть во внешних картах.</p>
+    {% endif %}
+    {% if map_info.has_point %}
+    <div class="mt-3">
+      <button type="button" id="geo-btn" class="btn btn-primary btn-lg"
+              data-lat="{{ '%.6f' % map_info.lat }}" data-lon="{{ '%.6f' % map_info.lon }}">Показать моё местоположение</button>
+      <p id="geo-status" class="mt-2 mb-0" role="status" aria-live="polite" hidden></p>
+      <a id="route-from-here" class="btn btn-outline-primary btn-lg mt-2" href="#" target="_blank" rel="noopener noreferrer" hidden>Маршрут от меня до места вызова</a>
+    </div>
+    {% endif %}
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      {% for title, url in map_info.links %}
+      <a class="btn btn-outline-primary btn-lg" href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ title }}</a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<div class="d-flex flex-wrap gap-2 mb-4">
+  {% if can('cases.add') %}
+  <a class="btn btn-success btn-lg" href="{{ url_for('case_new', call_id=call.id) }}">+ Добавить случай обслуживания</a>
+  {% endif %}
+  {% if can('diaries.add') %}
+  <a class="btn btn-success btn-lg" href="{{ url_for('diary_new', call_id=call.id) }}">+ Добавить «Дневник»</a>
+  {% endif %}
+</div>
+
+{% if records_failed %}
+<p class="text-muted">Случаи и дневники сейчас недоступны.</p>
+{% else %}
+<div class="row g-3">
+  <div class="col-12 col-lg-6">
+    <h2 class="h5">Случаи обслуживания</h2>
+    {% for c in cases %}
+    <div class="card mb-2"><div class="card-body">
+      <div class="small text-muted mb-1">{{ c.created_at }} · {{ c.outcome }}</div>
+      <p class="mb-1"><strong>Диагноз:</strong> {{ c.diagnosis }}</p>
+      <p class="mb-1"><strong>Жалобы:</strong> {{ c.complaints }}</p>
+      <p class="mb-0"><strong>Помощь:</strong> {{ c.actions }}</p>
+    </div></div>
+    {% else %}
+    <p class="text-muted">Пока нет.</p>
+    {% endfor %}
+  </div>
+  <div class="col-12 col-lg-6">
+    <h2 class="h5">Дневники</h2>
+    {% for d in diaries %}
+    <div class="card mb-2"><div class="card-body">
+      <div class="small text-muted mb-1">{{ d.created_at }} · {{ d.author }}</div>
+      <p class="mb-0" style="white-space: pre-line">{{ d.text }}</p>
+    </div></div>
+    {% else %}
+    <p class="text-muted">Пока нет.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}
