@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Вход{% endblock %}
+
+{% block css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+{% endblock %}
+
+{% block content %}
+  <div class="login-lock">
+    <div class="auth-shell">
+      <div class="auth-visual" aria-hidden="true">
+        <div class="auth-visual-pulse"></div>
+        <div class="auth-visual-grid"></div>
+        <div class="auth-visual-cross">
+          <span class="auth-visual-cross-v"></span>
+          <span class="auth-visual-cross-h"></span>
+        </div>
+        <div class="auth-visual-text">
+          <div class="auth-visual-title">Скорая помощь</div>
+          <div class="auth-visual-sub">Диспетчерская · вызовы · маршруты</div>
+        </div>
+      </div>
+
+      <div class="auth-card">
+        <div class="auth-logo">
+          <span class="auth-logo-icon">🚑</span>
+          <span class="auth-logo-text">Скорая</span>
+        </div>
+
+        <h1 class="auth-title">Вход в систему</h1>
+        <p class="auth-subtitle">Введите логин и пароль, чтобы продолжить</p>
+
+        {% if error %}
+          <div class="notice notice-danger auth-error">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('login') }}" class="auth-form" autocomplete="on">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+
+          <div class="form-group auth-field">
+            <label class="form-label" for="auth-login">Логин</label>
+            <input id="auth-login" type="text" name="login"
+                   class="form-textarea auth-input"
+                   required autofocus
+                   autocomplete="username"
+                   spellcheck="false">
+          </div>
+
+          <div class="form-group auth-field">
+            <label class="form-label" for="auth-password">Пароль</label>
+            <div class="auth-password-wrap">
+              <input id="auth-password" type="password" name="password"
+                     class="form-textarea auth-input"
+                     required
+                     autocomplete="current-password">
+              <button type="button" id="auth-toggle-pass"
+                      class="auth-password-toggle"
+                      aria-label="Показать пароль">👁</button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block auth-submit">
+            Войти
+          </button>
+        </form>
+
+        <p class="auth-footer">
+          Доступ выдаёт администратор. Если не помните пароль —
+          обратитесь к главному админу.
+        </p>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block js %}
+  <script>
+    (function () {
+      const pwd = document.getElementById("auth-password");
+      const btn = document.getElementById("auth-toggle-pass");
+      if (!pwd || !btn) return;
+      btn.addEventListener("click", () => {
+        const isPwd = pwd.type === "password";
+        pwd.type = isPwd ? "text" : "password";
+        btn.textContent = isPwd ? "🙈" : "👁";
+        btn.setAttribute("aria-label", isPwd ? "Скрыть пароль" : "Показать пароль");
+        pwd.focus();
+      });
+    })();
+  </script>
+{% endblock %}

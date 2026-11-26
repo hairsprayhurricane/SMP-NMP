@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{{ patient.name if patient else "Пациент" }}{% endblock %}
+
+{% block css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/patient_card.css') }}">
+{% endblock %}
+
+{% block content %}
+  <a href="javascript:history.back()" class="btn btn-outline btn-back"
+     aria-label="Назад к вызову">← Назад к вызову</a>
+
+  {% if patient %}
+    <div class="patient-header">
+      <h1 class="page-title">{{ patient.name }}</h1>
+    </div>
+
+    <div class="patient-fields">
+      <div class="patient-field">
+        <span class="label">Дата рождения</span>
+        <span class="value">{{ patient.birth_date }}</span>
+      </div>
+      <div class="patient-field">
+        <span class="label">Пол</span>
+        <span class="value">{{ patient.sex }}</span>
+      </div>
+      <div class="patient-field">
+        <span class="label">Полис ОМС</span>
+        <span class="value">{{ patient.oms }}</span>
+      </div>
+      <div class="patient-field">
+        <span class="label">Телефон</span>
+        <span class="value">{{ patient.phone }}</span>
+      </div>
+    </div>
+
+    <div class="patient-alert">
+      <strong>Аллергии:</strong> {{ patient.allergies }}
+    </div>
+
+    <div class="patient-actions">
+      <a id="appointment-btn" href="/patient/{{ patient.id }}/appointment/new"
+         class="btn btn-primary btn-block">Записать на приём</a>
+    </div>
+
+    <h2 class="section-title">Записи на приём</h2>
+    {% if appointments %}
+      <ul class="appointment-list">
+        {% for a in appointments %}
+          <li class="appointment-item">
+            <div class="appointment-head">
+              <span class="appointment-datetime">
+                {% if a.date %}{{ a.date }}{% endif %}
+                {% if a.time %} · {{ a.time }}{% endif %}
+              </span>
+              {% if a.doctor %}
+                <span class="appointment-doctor">{{ a.doctor }}</span>
+              {% endif %}
+            </div>
+            {% if a.note %}
+              <div class="appointment-note">{{ a.note }}</div>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="notice notice-muted">Записей пока нет</p>
+    {% endif %}
+  {% else %}
+    <div class="notice notice-danger">Пациент не найден</div>
+  {% endif %}
+{% endblock %}
+
+{% block js %}
+  <script src="{{ url_for('static', filename='js/patient_card.js') }}"></script>
+{% endblock %}
