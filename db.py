@@ -45,9 +45,15 @@ def connect():
 
 
 def init_db(conn):
-    """Создаёт таблицы и начальные роли/права. Безопасно вызывать повторно."""
-    for name in ("schema.sql", "seed.sql"):
-        with open(os.path.join(BASE_DIR, name), encoding="utf-8") as f:
+    """Создаёт таблицы; начальные роли/права — только на новой базе.
+
+    seed.sql выполняется лишь один раз, когда таблица ролей ещё пуста.
+    Иначе отозванное SQL-запросом право вернулось бы при каждом перезапуске.
+    """
+    with open(os.path.join(BASE_DIR, "schema.sql"), encoding="utf-8") as f:
+        conn.executescript(f.read())
+    if conn.execute("SELECT 1 FROM roles LIMIT 1").fetchone() is None:
+        with open(os.path.join(BASE_DIR, "seed.sql"), encoding="utf-8") as f:
             conn.executescript(f.read())
     conn.commit()
 
