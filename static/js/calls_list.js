@@ -2,10 +2,12 @@
   const FIELD_KEY = "search_field";
   const LAYERS_KEY = "map_layers_v1";
 
-  const toggle      = document.getElementById("field-toggle");
-  const menu        = document.getElementById("field-menu");
-  const label       = document.getElementById("field-label");
+  const toggle      = document.getElementById("filters-toggle");
+  const menu        = document.getElementById("filters-menu");
+  const label       = document.getElementById("filters-label");
   const input       = document.getElementById("field-input");
+  const priorityIn  = document.getElementById("priority-input");
+  const sortIn      = document.getElementById("sort-input");
   const search      = document.getElementById("calls-search");
   const results     = document.getElementById("results");
   const refreshBtn  = document.getElementById("refresh-btn");
@@ -57,11 +59,9 @@
     }
     return html;
   }
-
   function updateMaskView() {
     if (maskView) maskView.innerHTML = renderMaskHTML();
   }
-
   function setPhoneMode(on) {
     if (on) {
       phoneDigits = "";
@@ -91,10 +91,9 @@
     const url = new URL(window.location.href);
     if (!url.searchParams.get("field") && input.value !== saved) {
       input.value = saved;
-      label.textContent = labels[saved];
+      if (label) label.textContent = labels[saved];
     }
   }
-
   if (input.value === "phone") {
     const initialQ = (search.value || "").replace(/\D/g, "");
     setPhoneMode(true);
@@ -111,24 +110,36 @@
     e.stopPropagation();
     menu.hidden = !menu.hidden;
   });
-
   menu.querySelectorAll("button[data-field]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const field = btn.dataset.field;
       const wasPhone = input.value === "phone";
       input.value = field;
-      label.textContent = labels[field];
+      if (label) label.textContent = labels[field];
       localStorage.setItem(FIELD_KEY, field);
       menu.hidden = true;
-
       if (field === "phone") setPhoneMode(true);
       else if (wasPhone) setPhoneMode(false);
-
       if (mapMode) loadMapData();
       else runSearch(1);
     });
   });
-
+  menu.querySelectorAll("button[data-priority]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (priorityIn) priorityIn.value = btn.dataset.priority;
+      menu.hidden = true;
+      if (mapMode) loadMapData();
+      else runSearch(1);
+    });
+  });
+  menu.querySelectorAll("button[data-sort]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (sortIn) sortIn.value = btn.dataset.sort;
+      menu.hidden = true;
+      if (mapMode) loadMapData();
+      else runSearch(1);
+    });
+  });
   document.addEventListener("click", (e) => {
     if (!menu.hidden && !menu.contains(e.target) && e.target !== toggle) {
       menu.hidden = true;
@@ -206,7 +217,6 @@
       else runSearch(1);
     }
   });
-
   search.addEventListener("keydown", (e) => {
     if (input.value === "phone") return;
     if (e.key === "Enter") {
@@ -222,7 +232,6 @@
       currentView = (currentView === "nearest") ? "all" : "nearest";
       sortBtn.classList.toggle("btn-active", currentView === "nearest");
       if (viewInput) viewInput.value = currentView;
-
       if (mapMode) loadMapData();
       else runSearch(1);
     });
@@ -236,16 +245,16 @@
     let q;
     if (field === "phone") q = phoneDigits;
     else q = search.value.trim();
-
     if (abortController) abortController.abort();
     abortController = new AbortController();
-
-    const params = new URLSearchParams({ q, field, page, view: currentView });
-
+    const params = new URLSearchParams({
+      q, field, page,
+      view: currentView,
+      priority: priorityIn ? priorityIn.value : "",
+      sort: sortIn ? sortIn.value : "newest",
+    });
     try {
-      const res = await fetch("/search?" + params.toString(), {
-        signal: abortController.signal,
-      });
+      const res = await fetch("/search?" + params.toString(), { signal: abortController.signal });
       if (!res.ok) return;
       const html = await res.text();
       results.innerHTML = html;
@@ -301,14 +310,10 @@
       if (typeof parsed.active === "boolean") layerState.active = parsed.active;
     } catch (e) {}
   }
-
   function saveLayerState() {
     if (!isAdmin) return;
-    try {
-      localStorage.setItem(LAYERS_KEY, JSON.stringify(layerState));
-    } catch (e) {}
+    try { localStorage.setItem(LAYERS_KEY, JSON.stringify(layerState)); } catch (e) {}
   }
-
   function syncLayerButtons() {
     if (layerBtnAmbulances) {
       layerBtnAmbulances.classList.toggle("is-active", layerState.ambulances);
@@ -323,7 +328,6 @@
       layerBtnActive.setAttribute("aria-pressed", layerState.active ? "true" : "false");
     }
   }
-
   function bindLayerButtons() {
     if (layerBtnAmbulances) {
       layerBtnAmbulances.addEventListener("click", () => {
@@ -350,7 +354,6 @@
       });
     }
   }
-
   loadLayerState();
   syncLayerButtons();
   bindLayerButtons();
@@ -359,13 +362,11 @@
     mapMode = on;
     if (contentArea) contentArea.style.display = on ? "none" : (listMode ? "" : "none");
     if (mapShell) mapShell.style.display = on ? "" : "none";
-
     if (mapToggle) {
       mapToggle.classList.toggle("btn-active", on);
       const state = mapToggle.querySelector(".map-toggle-state");
       if (state) state.textContent = on ? "[on]" : "[off]";
     }
-
     if (on) {
       if (currentView === "nearest") {
         currentView = "all";
@@ -379,10 +380,7 @@
     }
   }
 
-  if (mapToggle) {
-    mapToggle.addEventListener("click", () => setMapMode(!mapMode));
-  }
-
+  if (mapToggle) mapToggle.addEventListener("click", () => setMapMode(!mapMode));
   if (listToggle) {
     listToggle.addEventListener("click", () => {
       listMode = !listMode;
@@ -397,7 +395,6 @@
 
   function initMap() {
     if (!mapEl || typeof L === "undefined") return;
-
     if (!map) {
       map = L.map(mapEl).setView([43.585, 39.723], 12);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -406,7 +403,6 @@
       }).addTo(map);
       startGeolocation();
     }
-
     setTimeout(() => map.invalidateSize(), 100);
     loadMapData();
   }
@@ -424,6 +420,7 @@
 
   function renderMapData(data) {
     if (data) lastMapData = data;
+    if (!map) return;
 
     callMarkers.forEach((m) => map.removeLayer(m));
     callMarkers = [];
@@ -436,22 +433,16 @@
       lastMapData.calls.forEach((p) => {
         const isActive = !!p.active_owner;
         if (onlyActive && !isActive) return;
-
         visibleCalls++;
         const marker = L.marker([p.lat, p.lng]).addTo(map);
-
         marker.on("mousedown", (e) => L.DomEvent.stopPropagation(e));
         marker.on("dblclick", (e) => L.DomEvent.stopPropagation(e));
 
-        const distText = (p.distance_km != null)
-          ? `<br>≈ ${p.distance_km} км от скорой`
-          : "";
+        const distText = (p.distance_km != null) ? `<br>≈ ${p.distance_km} км от скорой` : "";
         const priorityHtml = p.priority_label
           ? `<br><span class="priority-mark priority-mark-${p.priority}">${p.priority_label}</span>`
           : "";
-        const reasonHtml = p.reason
-          ? `<strong>${p.reason}</strong><br>`
-          : "";
+        const reasonHtml = p.reason ? `<strong>${p.reason}</strong><br>` : "";
 
         let infoHtml = `
           <div class="map-popup">
@@ -459,7 +450,6 @@
             ${p.patient_name}<br>
             ${p.address}${distText}${priorityHtml}
         `;
-
         if (userRole === 'doctor') {
           infoHtml += `<div class="map-popup-hint">Двойной клик — взять вызов</div>`;
         }
@@ -481,7 +471,6 @@
             </div>
           </div>
         `;
-
         marker.bindPopup(infoHtml);
 
         if (userRole === 'doctor') {
@@ -502,17 +491,14 @@
         marker.on("popupopen", (e) => {
           const popupEl = e.popup.getElement();
           if (!popupEl) return;
-
           const yesBtn = popupEl.querySelector(".map-popup-yes");
           const noBtn = popupEl.querySelector(".map-popup-no");
-
           if (yesBtn && !yesBtn.disabled && userRole === 'doctor') {
             yesBtn.addEventListener("click", () => {
               const callId = yesBtn.dataset.callId;
               const form = document.createElement("form");
               form.method = "POST";
               form.action = `/call/${callId}/accept`;
-
               const csrfInput = document.querySelector('input[name="_csrf"]');
               if (csrfInput) {
                 const hiddenInput = document.createElement("input");
@@ -521,17 +507,14 @@
                 hiddenInput.value = csrfInput.value;
                 form.appendChild(hiddenInput);
               }
-
               document.body.appendChild(form);
               form.submit();
             });
           }
-
           if (noBtn && !noBtn.disabled && userRole === 'doctor') {
             noBtn.addEventListener("click", () => map.closePopup());
           }
         });
-
         callMarkers.push(marker);
       });
     }
@@ -549,31 +532,23 @@
     if (showAmbulances) {
       lastMapData.doctors.forEach((d) => {
         if (onlyActiveAmbulances && !d.active_call_id) return;
-
         visibleAmbulances++;
         if (d.active_call_id) activeAmbulances++;
-
         const icon = L.divIcon({
           className: "ambulance-marker",
-          html: "🚑",
+          html: `<img src="/static/img/icons/ambulance.svg" alt="Ambulance">`,
           iconSize: [32, 32],
           iconAnchor: [16, 16],
         });
         const m = L.marker([d.lat, d.lng], { icon }).addTo(map);
         let popup = `<strong>${d.name}</strong>`;
-        if (d.active_call_id) {
-          popup += `<br>На вызове #${d.active_call_id}`;
-        } else {
-          popup += `<br>Свободна`;
-        }
+        if (d.active_call_id) popup += `<br>На вызове #${d.active_call_id}`;
+        else popup += `<br>Свободна`;
         m.bindPopup(popup);
         ambulanceMarkers[d.login] = m;
-
         if (d.active_call_id && layerState.active) {
           const targetCall = lastMapData.calls.find(c => c.id === d.active_call_id);
-          if (targetCall) {
-            drawRoute(d.lat, d.lng, targetCall.lat, targetCall.lng);
-          }
+          if (targetCall) drawRoute(d.lat, d.lng, targetCall.lat, targetCall.lng);
         }
       });
     }
@@ -587,9 +562,7 @@
 
     if (focusCallId && map) {
       const target = lastMapData.calls.find(c => c.id === focusCallId);
-      if (target) {
-        map.setView([target.lat, target.lng], 15);
-      }
+      if (target) map.setView([target.lat, target.lng], 15);
     }
   }
 
@@ -619,16 +592,14 @@
   function startGeolocation() {
     if (userRole !== "doctor") return;
     if (!navigator.geolocation) return;
-
     navigator.geolocation.watchPosition(
       (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-
         if (!ambulanceMarkerSelf) {
           const ambulanceIcon = L.divIcon({
             className: "ambulance-marker",
-            html: "🚑",
+            html: `<img src="/static/img/icons/ambulance.svg" alt="Ambulance">`,
             iconSize: [32, 32],
             iconAnchor: [16, 16],
           });
@@ -649,7 +620,6 @@
       if (mapMode) loadMapData();
     }, 8000);
   }
-
   function stopAutoRefresh() {
     if (refreshTimer) {
       clearInterval(refreshTimer);
@@ -657,12 +627,12 @@
     }
   }
 
+  window.addEventListener("fontsizechange", () => {
+    if (map) setTimeout(() => map.invalidateSize(), 120);
+  });
+
   bindPagination();
-
-  if (mapShell) {
-    mapShell.style.display = "none";
-  }
-
+  if (mapShell) mapShell.style.display = "none";
   if (mapEl && mapEl.dataset.initMap === "1" && !mapMode) {
     setMapMode(true);
   }

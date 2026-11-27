@@ -40,7 +40,7 @@
 
   const ownerIcon = L.divIcon({
     className: "ambulance-marker",
-    html: "🚑",
+    html: `<img src="/static/img/icons/ambulance.svg" alt="Ambulance">`,
     iconSize: [32, 32],
     iconAnchor: [16, 16],
   });

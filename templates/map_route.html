@@ -11,23 +11,28 @@
     <a href="/call/{{ call.id }}" class="btn btn-outline btn-back">← Назад к вызову</a>
 
     <h1 class="page-title">Маршрут к вызову #{{ call.number }}</h1>
-    <p class="map-route-info">📍 {{ call.address }} — {{ call.patient_name }}</p>
+    <p class="map-route-info">
+      <img src="{{ url_for('static', filename='img/icons/pin.png') }}" class="inline-icon" alt="">
+      {{ call.address }} — {{ call.patient_name }}
+    </p>
 
     <div id="route-status" class="route-status">
       Определяем ваше местоположение…
     </div>
 
-    <div id="route-map" class="route-map" style="height:60vh; min-height:400px; width:100%;"></div>
+    <div id="route-map" class="route-map"></div>
 
     <div class="route-actions">
       <button type="button" id="retry-geo-btn" class="btn btn-outline btn-block">
-        📍 Повторить запрос геолокации
+        <img src="{{ url_for('static', filename='img/icons/pin.png') }}" class="inline-icon" alt="">
+        Повторить запрос геолокации
       </button>
       <button type="button" id="manual-locate-btn" class="btn btn-outline btn-block">
-        🖐 Указать местоположение на карте
+        Указать местоположение на карте
       </button>
       <button type="button" id="recalc-btn" class="btn btn-outline btn-block">
-        🔄 Перестроить маршрут
+        <img src="{{ url_for('static', filename='img/icons/refresh.png') }}" class="inline-icon" alt="">
+        Перестроить маршрут
       </button>
     </div>
 

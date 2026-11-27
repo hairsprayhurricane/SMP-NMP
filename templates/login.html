@@ -1,5 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Вход{% endblock %}
+{% block body_class %}is-login{% endblock %}
+
+{% block bg_video %}
+<video id="login-bg-video" class="bg-video" autoplay muted loop playsinline preload="auto"
+       poster="{{ url_for('static', filename='video/login-bg.jpg') }}">
+  <source src="{{ url_for('static', filename='video/login-bg.mp4') }}" type="video/mp4">
+</video>
+{% endblock %}
 
 {% block css %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
@@ -23,7 +31,7 @@
 
       <div class="auth-card">
         <div class="auth-logo">
-          <span class="auth-logo-icon">🚑</span>
+          <span class="auth-logo-icon"><img src="{{ url_for('static', filename='img/icons/ambulance.png') }}" class="inline-icon" alt=""></span>
           <span class="auth-logo-text">Скорая</span>
         </div>
 
@@ -78,13 +86,56 @@
     (function () {
       const pwd = document.getElementById("auth-password");
       const btn = document.getElementById("auth-toggle-pass");
-      if (!pwd || !btn) return;
-      btn.addEventListener("click", () => {
-        const isPwd = pwd.type === "password";
-        pwd.type = isPwd ? "text" : "password";
-        btn.textContent = isPwd ? "🙈" : "👁";
-        btn.setAttribute("aria-label", isPwd ? "Скрыть пароль" : "Показать пароль");
-        pwd.focus();
+      if (pwd && btn) {
+        btn.addEventListener("click", () => {
+          const isPwd = pwd.type === "password";
+          pwd.type = isPwd ? "text" : "password";
+          btn.textContent = isPwd ? "🙈" : "👁";
+          btn.setAttribute("aria-label", isPwd ? "Скрыть пароль" : "Показать пароль");
+          pwd.focus();
+        });
+      }
+
+      const bg = document.getElementById("login-bg-video");
+      if (!bg) return;
+
+      const RATE = 0.2;
+      const FREEZE_AT = 12;
+      const FREEZE_MS = 60000;
+
+      let frozenUntil = 0;
+      let rafId = null;
+
+      function setRate() {
+        bg.playbackRate = RATE;
+      }
+
+      function tick() {
+        const now = performance.now();
+
+        if (bg.currentTime >= FREEZE_AT && frozenUntil === 0) {
+          frozenUntil = now + FREEZE_MS;
+        }
+
+        if (frozenUntil > 0) {
+          if (now < frozenUntil) {
+            bg.currentTime = FREEZE_AT;
+          } else {
+            frozenUntil = 0;
+          }
+        }
+
+        rafId = requestAnimationFrame(tick);
+      }
+
+      bg.addEventListener("loadedmetadata", setRate);
+      bg.addEventListener("play", setRate);
+      bg.addEventListener("seeked", () => { frozenUntil = 0; });
+
+      setRate();
+      rafId = requestAnimationFrame(tick);
+      window.addEventListener("beforeunload", () => {
+        if (rafId) cancelAnimationFrame(rafId);
       });
     })();
   </script>

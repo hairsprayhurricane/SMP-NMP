@@ -5,6 +5,7 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="format-detection" content="telephone=no">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>{% block title %}Скорая{% endblock %}</title>
 
   <script>
@@ -24,6 +25,7 @@
         if (s.fontSize) document.documentElement.dataset.fontSize = s.fontSize;
         if (s.largeControls) document.documentElement.dataset.largeControls = 'true';
         if (s.highContrast) document.documentElement.dataset.contrast = 'high';
+        document.documentElement.dataset.uiMode = s.uiMode || 'advanced';
       } catch (e) {}
     })();
   </script>
@@ -31,7 +33,9 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
   {% block css %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
+  {% block bg_video %}{% endblock %}
+
   <div class="app-scale">
     <header class="app-header">
       <div class="app-header-left">
@@ -58,11 +62,13 @@
               {% if current_user.role in ('admin', 'superadmin') %}
                 {% if request.path.startswith('/admin') %}
                   <a class="app-user-dropdown-item" href="/">
-                    <span aria-hidden="true">🏠</span> На главную
+                    <img src="{{ url_for('static', filename='img/icons/home.png') }}" class="icon" alt="">
+                    На главную
                   </a>
                 {% else %}
                   <a class="app-user-dropdown-item" href="{{ url_for('admin_panel') }}">
-                    <span aria-hidden="true">🛡</span> Админ-панель
+                    <img src="{{ url_for('static', filename='img/icons/shield.png') }}" class="icon" alt="">
+                    Админ-панель
                   </a>
                 {% endif %}
               {% endif %}
@@ -70,11 +76,13 @@
               <a class="app-user-dropdown-item"
                  href="{{ doctor_portal_url or '#' }}"
                  target="_blank" rel="noopener noreferrer">
-                <span aria-hidden="true">🩺</span> Портал врача
+                <img src="{{ url_for('static', filename='img/icons/doctor.png') }}" class="icon" alt="">
+                Портал врача
               </a>
 
               <button type="button" class="app-user-dropdown-item" id="settings-btn">
-                <span aria-hidden="true">⚙</span> Настройки
+                <img src="{{ url_for('static', filename='img/icons/settings.png') }}" class="icon" alt="">
+                Настройки
               </button>
 
               <div class="app-user-dropdown-sep"></div>
@@ -82,14 +90,16 @@
               <form method="POST" action="{{ url_for('logout') }}">
                 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
                 <button class="app-user-dropdown-item app-user-dropdown-danger" type="submit">
-                  <span aria-hidden="true">↩</span> Выйти
+                  <img src="{{ url_for('static', filename='img/icons/logout.png') }}" class="icon" alt="">
+                  Выйти
                 </button>
               </form>
             </div>
           </div>
         {% else %}
           <button id="settings-btn" class="app-nav-link" type="button">
-            <span aria-hidden="true">⚙</span> <span class="label">Настройки</span>
+            <img src="{{ url_for('static', filename='img/icons/settings.png') }}" class="icon" alt="">
+            <span class="label">Настройки</span>
           </button>
         {% endif %}
 
@@ -121,6 +131,14 @@
     <div class="settings-header">
       <h2 class="settings-title">Настройки</h2>
       <button id="settings-close" class="settings-close" type="button" aria-label="Закрыть">✕</button>
+    </div>
+
+    <div class="settings-group">
+      <span class="settings-label">Режим интерфейса</span>
+      <div class="settings-options">
+        <button type="button" class="btn btn-outline" data-uimode-set="simple">Простой</button>
+        <button type="button" class="btn btn-outline" data-uimode-set="advanced">Продвинутый</button>
+      </div>
     </div>
 
     <div class="settings-group">

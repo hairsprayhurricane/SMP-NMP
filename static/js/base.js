@@ -1,55 +1,17 @@
 (function () {
   function blockZoomHard() {
-    function blockKey(e) {
-      if (!e.ctrlKey && !e.metaKey) return;
-      const k = (e.key || "").toLowerCase();
-      const code = e.keyCode || e.which;
-      const zoomKeys = [
-        "+", "-", "=", "_", "add", "subtract", "0", "numpadadd", "numpadsubtract",
-      ];
-      if (
-        zoomKeys.includes(k) ||
-        code === 187 || code === 189 || code === 107 || code === 109 ||
-        code === 48 || code === 96
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        return false;
-      }
-    }
-
-    function blockWheel(e) {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        return false;
-      }
-    }
-
     function blockGesture(e) {
       e.preventDefault();
-      e.stopPropagation();
       return false;
     }
-
-    document.addEventListener("keydown", blockKey, { capture: true, passive: false });
-    window.addEventListener("keydown", blockKey, { capture: true, passive: false });
-    window.addEventListener("wheel", blockWheel, { capture: true, passive: false });
-    document.addEventListener("wheel", blockWheel, { capture: true, passive: false });
-
     ["gesturestart", "gesturechange", "gestureend"].forEach((ev) => {
       document.addEventListener(ev, blockGesture, { passive: false });
-      window.addEventListener(ev, blockGesture, { passive: false });
     });
-
     document.addEventListener("touchmove", (e) => {
       if (e.touches && e.touches.length > 1) {
         e.preventDefault();
       }
     }, { passive: false });
-
     let lastTouchEnd = 0;
     document.addEventListener("touchend", (e) => {
       const now = Date.now();
@@ -58,12 +20,10 @@
       }
       lastTouchEnd = now;
     }, { passive: false });
-
     document.addEventListener("dblclick", (e) => {
       e.preventDefault();
     }, { passive: false });
   }
-
   blockZoomHard();
 
   function updateNetStatus() {
@@ -168,6 +128,7 @@
     autoTheme: false,
     largeControls: false,
     highContrast: false,
+    uiMode: "advanced",
   };
 
   let settings = loadSettings();
@@ -194,6 +155,7 @@
 
   function applySettings() {
     const html = document.documentElement;
+    const prevFontSize = html.dataset.fontSize;
     let theme = settings.theme;
     if (settings.autoTheme) theme = themeForTime(new Date());
 
@@ -201,6 +163,7 @@
     html.dataset.fontSize = settings.fontSize;
     html.dataset.largeControls = settings.largeControls ? "true" : "false";
     html.dataset.contrast = settings.highContrast ? "high" : "normal";
+    html.dataset.uiMode = settings.uiMode || "advanced";
 
     document.querySelectorAll("[data-theme-set]").forEach((b) => {
       const isActive = !settings.autoTheme && b.dataset.themeSet === settings.theme;
@@ -211,6 +174,12 @@
 
     document.querySelectorAll("[data-size-set]").forEach((b) => {
       const isActive = b.dataset.sizeSet === settings.fontSize;
+      b.classList.toggle("btn-active", isActive);
+      b.classList.toggle("btn-outline", !isActive);
+    });
+
+    document.querySelectorAll("[data-uimode-set]").forEach((b) => {
+      const isActive = b.dataset.uimodeSet === (settings.uiMode || "advanced");
       b.classList.toggle("btn-active", isActive);
       b.classList.toggle("btn-outline", !isActive);
     });
@@ -229,6 +198,12 @@
       secCb.disabled = !settings.clockVisible;
       const row = secCb.closest(".settings-toggle");
       if (row) row.style.opacity = settings.clockVisible ? "1" : "0.45";
+    }
+
+    if (prevFontSize !== settings.fontSize) {
+      requestAnimationFrame(() => {
+        window.dispatchEvent(new CustomEvent("fontsizechange"));
+      });
     }
   }
 
@@ -302,6 +277,14 @@
   document.querySelectorAll("[data-size-set]").forEach((b) => {
     b.addEventListener("click", () => {
       settings.fontSize = b.dataset.sizeSet;
+      saveSettings();
+      applySettings();
+    });
+  });
+
+  document.querySelectorAll("[data-uimode-set]").forEach((b) => {
+    b.addEventListener("click", () => {
+      settings.uiMode = b.dataset.uimodeSet;
       saveSettings();
       applySettings();
     });

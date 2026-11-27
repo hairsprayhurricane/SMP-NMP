@@ -2,7 +2,8 @@
   {% for call in calls %}
     <article class="call-card call-priority-{{ call.priority }}
       {% if call.is_active_for_me %}call-is-active{% endif %}
-      {% if call.is_completed %}call-is-completed{% endif %}">
+      {% if call.is_completed %}call-is-completed{% endif %}"
+      style="--i: {{ loop.index0 }}">
       <a href="/call/{{ call.id }}" class="call-card-link">
         <div class="call-top">
           <span class="priority-mark priority-mark-{{ call.priority }}">{{ call.priority_label }}</span>
@@ -10,11 +11,22 @@
         </div>
         <div class="call-reason">{{ call.reason }}</div>
         <h2 class="call-title">{{ call.patient_name }}</h2>
-        <p class="call-address">📍 {{ call.address }}</p>
-        {% if call.distance_km is not none %}
-          <p class="call-distance">🚑 ≈ {{ call.distance_km }} км</p>
-        {% endif %}
-        <p class="call-phone">📞 {{ call.patient_phone }}</p>
+        <div class="call-meta">
+          <span class="call-meta-item">
+            <img src="{{ url_for('static', filename='img/icons/pin.png') }}" class="inline-icon" alt="">
+            {{ call.address }}
+          </span>
+          <span class="call-meta-item">
+            <img src="{{ url_for('static', filename='img/icons/phone.png') }}" class="inline-icon" alt="">
+            {{ call.patient_phone }}
+          </span>
+          {% if call.distance_km is not none %}
+            <span class="call-distance">
+              <img src="{{ url_for('static', filename='img/icons/ambulance.png') }}" class="inline-icon" alt="">
+              ≈ {{ call.distance_km }} км
+            </span>
+          {% endif %}
+        </div>
       </a>
 
       {% if call.is_completed %}
@@ -23,6 +35,22 @@
         </p>
       {% elif call.is_active_for_me %}
         <p class="call-badge call-badge-active">Ваш активный вызов</p>
+        {% if current_user.role in ('admin', 'superadmin') %}
+        <div class="call-timestamps">
+          <div class="timestamp-item">
+            <span class="timestamp-label">Создан</span>
+            <span class="timestamp-value">{{ call.created_at|default('—') }}</span>
+          </div>
+          <div class="timestamp-item">
+            <span class="timestamp-label">Принят</span>
+            <span class="timestamp-value">{{ call.accepted_at|default('—') }}</span>
+          </div>
+          <div class="timestamp-item">
+            <span class="timestamp-label">Выполнен</span>
+            <span class="timestamp-value">{{ call.completed_at|default('—') }}</span>
+          </div>
+        </div>
+        {% endif %}
         <a href="/call/{{ call.id }}" class="btn btn-primary btn-block">Открыть вызов</a>
       {% elif call.active_owner %}
         <p class="call-badge call-badge-completed">Взят: {{ call.active_owner }}</p>

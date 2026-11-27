@@ -6,6 +6,10 @@
 {% endblock %}
 
 {% block content %}
+  {% set can_view_records = current_user.role in ('admin', 'superadmin') or (current_user.role == 'doctor' and (call.is_active_for_me or call.completed_by == current_user.login)) %}
+  {% set can_add_records = current_user.role == 'doctor' and call.is_active_for_me %}
+  {% set is_admin = current_user.role in ('admin', 'superadmin') %}
+
   <a href="/" class="btn btn-outline btn-back">← К списку вызовов</a>
 
   <article class="form-card
@@ -21,7 +25,10 @@
       <div class="form-card-head-meta">
         <span class="priority-mark priority-mark-{{ call.priority }}">{{ call.priority_label }}</span>
         {% if call.distance_km is not none %}
-          <span class="form-card-distance">{{ call.distance_km }} км</span>
+          <span class="form-card-distance">
+            <img src="{{ url_for('static', filename='img/icons/ambulance.png') }}" class="inline-icon" alt="">
+            {{ call.distance_km }} км
+          </span>
         {% endif %}
       </div>
     </header>
@@ -29,11 +36,17 @@
     <dl class="form-fields">
       <div class="form-field">
         <dt>Адрес</dt>
-        <dd>{{ call.address }}</dd>
+        <dd>
+          <img src="{{ url_for('static', filename='img/icons/pin.png') }}" class="inline-icon" alt="">
+          {{ call.address }}
+        </dd>
       </div>
       <div class="form-field">
         <dt>Телефон</dt>
-        <dd>{{ call.patient_phone }}</dd>
+        <dd>
+          <img src="{{ url_for('static', filename='img/icons/phone.png') }}" class="inline-icon" alt="">
+          {{ call.patient_phone }}
+        </dd>
       </div>
       <div class="form-field">
         <dt>Срочность</dt>
@@ -66,7 +79,6 @@
     {% endif %}
 
     {% if current_user.role == 'doctor' and call.is_active_for_me %}
-
       <section class="form-section form-section-stage">
         <div class="stage-head">
           <h2 class="form-section-title">Этап бригады</h2>
@@ -91,11 +103,19 @@
               <button type="submit" class="btn btn-primary">Прибыл</button>
             </form>
           {% endif %}
-          <a href="/map/route/{{ call.id }}" class="btn btn-outline">Маршрут</a>
-          <a href="/patient/{{ call.patient_id }}" class="btn btn-outline">Карточка пациента</a>
+          <a href="/map/route/{{ call.id }}" class="btn btn-outline">
+            <img src="{{ url_for('static', filename='img/icons/route.png') }}" class="inline-icon" alt="">
+            Маршрут
+          </a>
+          <a href="/patient/{{ call.patient_id }}" class="btn btn-outline">
+            <img src="{{ url_for('static', filename='img/icons/patient.jpg') }}" class="inline-icon" alt="">
+            Карточка пациента
+          </a>
         </div>
       </section>
+    {% endif %}
 
+    {% if can_view_records %}
       <section class="form-section form-section-records">
         <details class="record-group" {% if patient_info %}open{% endif %}>
           <summary class="record-group-head">
@@ -107,22 +127,32 @@
               <ul class="record-list">
                 {% for i in patient_info %}
                   <li class="record-item {% if i.incorrect %}record-incorrect{% endif %}"
-                      {% if not i.incorrect and i.author == current_user.login %}
+                      {% if not i.incorrect and (i.author == current_user.login or is_admin) %}
                         data-mark-url="/call/{{ call.id }}/info/{{ i.id }}/mark_incorrect"
                       {% endif %}>
                     <span class="record-time">{{ i.time }}</span>
                     <span class="record-type">{{ i.type }}</span>
-                    {% if i.incorrect %}<span class="record-mark">некорректно</span>{% endif %}
+                    {% if i.incorrect %}<span class="record-mark">Неверная</span>{% endif %}
                     <div class="record-text">{{ i.text }}</div>
+                    {% if i.incorrect and is_admin %}
+                      <form method="POST" action="/call/{{ call.id }}/record/info/{{ i.id }}/delete"
+                            class="record-delete-form"
+                            onsubmit="return confirm('Удалить эту запись навсегда?');">
+                        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline record-delete-btn">Удалить</button>
+                      </form>
+                    {% endif %}
                   </li>
                 {% endfor %}
               </ul>
             {% else %}
               <p class="record-empty">Нет записей</p>
             {% endif %}
-            <div class="form-actions-row">
-              <a class="btn btn-outline" href="/call/{{ call.id }}/info/new">Добавить информацию</a>
-            </div>
+            {% if can_add_records %}
+              <div class="form-actions-row">
+                <a class="btn btn-outline" href="/call/{{ call.id }}/info/new">Добавить информацию</a>
+              </div>
+            {% endif %}
           </div>
         </details>
 
@@ -136,22 +166,32 @@
               <ul class="record-list">
                 {% for p in problems %}
                   <li class="record-item {% if p.incorrect %}record-incorrect{% endif %}"
-                      {% if not p.incorrect and p.author == current_user.login %}
+                      {% if not p.incorrect and (p.author == current_user.login or is_admin) %}
                         data-mark-url="/call/{{ call.id }}/problems/{{ p.id }}/mark_incorrect"
                       {% endif %}>
                     <span class="record-time">{{ p.time }}</span>
                     <span class="record-type">{{ p.type }}</span>
-                    {% if p.incorrect %}<span class="record-mark">некорректно</span>{% endif %}
+                    {% if p.incorrect %}<span class="record-mark">Неверная</span>{% endif %}
                     <div class="record-text">{{ p.text }}</div>
+                    {% if p.incorrect and is_admin %}
+                      <form method="POST" action="/call/{{ call.id }}/record/problems/{{ p.id }}/delete"
+                            class="record-delete-form"
+                            onsubmit="return confirm('Удалить эту запись навсегда?');">
+                        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline record-delete-btn">Удалить</button>
+                      </form>
+                    {% endif %}
                   </li>
                 {% endfor %}
               </ul>
             {% else %}
               <p class="record-empty">Проблем не зафиксировано</p>
             {% endif %}
-            <div class="form-actions-row">
-              <a class="btn btn-outline" href="/call/{{ call.id }}/problems/new">Добавить проблему</a>
-            </div>
+            {% if can_add_records %}
+              <div class="form-actions-row">
+                <a class="btn btn-outline" href="/call/{{ call.id }}/problems/new">Добавить проблему</a>
+              </div>
+            {% endif %}
           </div>
         </details>
 
@@ -164,19 +204,33 @@
             {% if cases %}
               <ul class="record-list">
                 {% for c in cases %}
-                  <li class="record-item">
+                  <li class="record-item {% if c.incorrect %}record-incorrect{% endif %}"
+                      {% if not c.incorrect and (c.author == current_user.login or is_admin) %}
+                        data-mark-url="/call/{{ call.id }}/case/{{ c.id }}/mark_incorrect"
+                      {% endif %}>
                     <span class="record-time">{{ c.time }}</span>
                     <span class="record-type">{{ c.type }}</span>
+                    {% if c.incorrect %}<span class="record-mark">Неверная</span>{% endif %}
                     <div class="record-text">{{ c.text }}</div>
+                    {% if c.incorrect and is_admin %}
+                      <form method="POST" action="/call/{{ call.id }}/record/case/{{ c.id }}/delete"
+                            class="record-delete-form"
+                            onsubmit="return confirm('Удалить эту запись навсегда?');">
+                        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline record-delete-btn">Удалить</button>
+                      </form>
+                    {% endif %}
                   </li>
                 {% endfor %}
               </ul>
             {% else %}
               <p class="record-empty">Случаев пока нет</p>
             {% endif %}
-            <div class="form-actions-row">
-              <a class="btn btn-outline" href="/call/{{ call.id }}/case/new">Добавить случай</a>
-            </div>
+            {% if can_add_records %}
+              <div class="form-actions-row">
+                <a class="btn btn-outline" href="/call/{{ call.id }}/case/new">Добавить случай</a>
+              </div>
+            {% endif %}
           </div>
         </details>
 
@@ -189,23 +243,39 @@
             {% if diary %}
               <ul class="record-list">
                 {% for d in diary %}
-                  <li class="record-item">
+                  <li class="record-item {% if d.incorrect %}record-incorrect{% endif %}"
+                      {% if not d.incorrect and (d.author == current_user.login or is_admin) %}
+                        data-mark-url="/call/{{ call.id }}/diary/{{ d.id }}/mark_incorrect"
+                      {% endif %}>
                     <span class="record-time">{{ d.time }}</span>
                     <span class="record-type">{{ d.type }}</span>
+                    {% if d.incorrect %}<span class="record-mark">Неверная</span>{% endif %}
                     <div class="record-text">{{ d.text }}</div>
+                    {% if d.incorrect and is_admin %}
+                      <form method="POST" action="/call/{{ call.id }}/record/diary/{{ d.id }}/delete"
+                            class="record-delete-form"
+                            onsubmit="return confirm('Удалить эту запись навсегда?');">
+                        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline record-delete-btn">Удалить</button>
+                      </form>
+                    {% endif %}
                   </li>
                 {% endfor %}
               </ul>
             {% else %}
               <p class="record-empty">Записей нет</p>
             {% endif %}
-            <div class="form-actions-row">
-              <a class="btn btn-outline" href="/call/{{ call.id }}/diary/new">Добавить в дневник</a>
-            </div>
+            {% if can_add_records %}
+              <div class="form-actions-row">
+                <a class="btn btn-outline" href="/call/{{ call.id }}/diary/new">Добавить в дневник</a>
+              </div>
+            {% endif %}
           </div>
         </details>
       </section>
+    {% endif %}
 
+    {% if current_user.role == 'doctor' and call.is_active_for_me %}
       <section class="form-section form-section-finish">
         <h2 class="form-section-title">Завершение</h2>
         <div class="form-actions-row">
@@ -221,7 +291,6 @@
           </form>
         </div>
       </section>
-
     {% elif current_user.role == 'doctor' and not call.is_completed and not call.active_owner and not active_call_id %}
       <section class="form-section">
         <div class="form-actions-row">
@@ -236,8 +305,11 @@
       <section class="form-section">
         <div class="form-actions-row">
           <a href="/patient/{{ call.patient_id }}" class="btn btn-outline">Карточка пациента</a>
-          {% if current_user.role in ('admin', 'superadmin') %}
-            <a href="{{ url_for('admin_map_call', call_id=call.id) }}" class="btn btn-outline">Показать на карте</a>
+          {% if is_admin %}
+            <a href="{{ url_for('admin_map_call', call_id=call.id) }}" class="btn btn-outline">
+              <img src="{{ url_for('static', filename='img/icons/map.svg') }}" class="inline-icon" alt="">
+              Показать на карте
+            </a>
           {% endif %}
         </div>
       </section>

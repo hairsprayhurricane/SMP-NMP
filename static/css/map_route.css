@@ -12,8 +12,8 @@
 }
 
 .route-map {
-  height: 60vh;
-  min-height: 400px;
+  height: 55vh;
+  min-height: 250px;
   width: 100%;
   border-radius: 8px;
   border: 1px solid var(--border);
@@ -22,10 +22,15 @@
   position: relative;
   z-index: 1;
 }
+html[data-font-size="1.5"] .route-map { height: 45vh; min-height: 200px; }
+html[data-font-size="2"] .route-map   { height: 35vh; min-height: 180px; }
 
 .route-actions .btn { margin-bottom: 0.5rem; }
 .route-hint { font-size: 0.9rem; color: var(--text-muted); margin-top: 1rem; }
+
 .ambulance-marker {
-  font-size: 28px; line-height: 32px; text-align: center;
+  font-size: 28px;
+  line-height: 32px;
+  text-align: center;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,.5));
 }

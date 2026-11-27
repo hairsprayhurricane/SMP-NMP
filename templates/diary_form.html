@@ -16,6 +16,8 @@
     </div>
 
     <form action="{{ form_action }}" method="POST" data-offline-queue>
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+
       <div class="form-group">
         <label class="form-label" for="diary-type">Тип записи</label>
         <select id="diary-type" name="type" class="form-select" required>
