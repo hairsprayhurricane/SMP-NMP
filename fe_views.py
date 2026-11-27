@@ -53,6 +53,12 @@ def fe_role():
     return "doctor" if code in ("doctor", "paramedic") else code
 
 
+def _posted_data():
+    """Данные POST: обычная форма (form-data) или отложенная офлайн-запись (JSON)."""
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else request.form.to_dict()
+
+
 @bp.context_processor
 def inject_fe_globals():
     user = g.get("user")
@@ -502,7 +508,7 @@ def info_new(call_id):
     if redirect_:
         return redirect_
     if request.method == "POST":
-        data = request.form.to_dict()
+        data = _posted_data()
         try:
             api.create_call_info(str(call_id), {
                 "author": g.user["username"], "type": data.get("type", ""), "text": data.get("text", ""),
@@ -527,7 +533,7 @@ def problems_new(call_id):
     if redirect_:
         return redirect_
     if request.method == "POST":
-        data = request.form.to_dict()
+        data = _posted_data()
         try:
             api.create_call_problem(str(call_id), {
                 "author": g.user["username"], "type": data.get("type", ""), "text": data.get("text", ""),
@@ -552,7 +558,7 @@ def case_new(call_id):
     if redirect_:
         return redirect_
     if request.method == "POST":
-        data = request.form.to_dict()
+        data = _posted_data()
         try:
             api.create_case(str(call_id), {
                 "author": g.user["username"],
@@ -578,7 +584,7 @@ def diary_new(call_id):
     if redirect_:
         return redirect_
     if request.method == "POST":
-        data = request.form.to_dict()
+        data = _posted_data()
         try:
             api.create_diary(str(call_id), {
                 "author": g.user["full_name"],
@@ -697,7 +703,7 @@ def appointment_new(patient_id):
 
     now = datetime.now()
     if request.method == "POST":
-        data = request.form.to_dict()
+        data = _posted_data()
         date = (data.get("date") or "").strip()
         time = (data.get("time") or "").strip()
         doctor = (data.get("doctor") or "").strip()

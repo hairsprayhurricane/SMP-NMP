@@ -355,6 +355,8 @@
   syncLayerButtons();
   bindLayerButtons();
 
+  let viewResetForMap = false;
+
   function setMapMode(on) {
     mapMode = on;
     if (contentArea) contentArea.style.display = on ? "none" : (listMode ? "" : "none");
@@ -371,11 +373,18 @@
         currentView = "all";
         if (sortBtn) sortBtn.classList.remove("btn-active");
         if (viewInput) viewInput.value = "all";
+        viewResetForMap = true;
       }
       initMap();
       startAutoRefresh();
     } else {
       stopAutoRefresh();
+      // Карта показывает все вызовы, поэтому при возврате к списку
+      // перезагружаем его — иначе останется отфильтрованный «ближайший».
+      if (viewResetForMap) {
+        viewResetForMap = false;
+        runSearch(1);
+      }
     }
   }
 
@@ -436,6 +445,8 @@
       lastMapData.calls.forEach((p) => {
         const isActive = !!p.active_owner;
         if (onlyActive && !isActive) return;
+        // Вызов без координат на карту не ставим: Leaflet падает на null.
+        if (p.lat == null || p.lng == null) return;
 
         visibleCalls++;
         const marker = L.marker([p.lat, p.lng]).addTo(map);

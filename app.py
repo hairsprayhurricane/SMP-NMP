@@ -173,7 +173,15 @@ def _csrf_token():
 @app.before_request
 def _check_csrf():
     if request.method == "POST":
-        sent = request.form.get("_csrf", "").encode("utf-8")
+        sent = request.form.get("_csrf", "")
+        # Офлайн-очередь (static/js/form.js) досылает форму JSON-ом: токен
+        # приходит в теле, а не в form-data. Без этой ветки такие POST'ы
+        # отклонялись бы с 400 и поставленные в очередь записи терялись.
+        if not sent and request.is_json:
+            body = request.get_json(silent=True)
+            if isinstance(body, dict):
+                sent = body.get("_csrf", "")
+        sent = (sent if isinstance(sent, str) else "").encode("utf-8")
         expected = session.get("_csrf", "").encode("utf-8")
         if not expected or not hmac.compare_digest(sent, expected):
             log.warning("CSRF: отклонён POST %s", request.path)
@@ -301,7 +309,11 @@ def _form_view(template, fields, required, send, success_url, success_msg, log_m
     """
     values = {f: "" for f in fields}
     if request.method == "POST":
-        values = {f: request.form.get(f, "").strip() for f in fields}
+        # Обычный POST приходит form-data, отложенный офлайн-записью — JSON.
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            data = request.form
+        values = {f: str(data.get(f, "") or "").strip() for f in fields}
         missing = [label for f, label in required.items() if not values[f]]
         if missing:
             flash("Заполните обязательные поля: " + ", ".join(missing) + ".", "warning")
