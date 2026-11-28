@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ form_title }}{% endblock %}
+
+{% block css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/form.css') }}">
+{% endblock %}
+
+{% block content %}
+  <div class="form-page">
+    <a href="/call/{{ call_id }}" class="btn btn-outline btn-back">← Назад к вызову</a>
+    <h1 class="page-title">{{ form_title }}</h1>
+
+    <div id="offline-banner" class="form-offline-banner">
+      ⚠ Нет связи. Запись сохранится локально и отправится автоматически,
+      когда появится интернет.
+    </div>
+
+    <form action="{{ form_action }}" method="POST" data-offline-queue>
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+
+      <div class="form-group">
+        <label class="form-label" for="case-type">Тип случая</label>
+        <select id="case-type" name="type" class="form-select" required>
+          {% for t in case_types %}
+            <option value="{{ t }}">{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="case-text">Описание случая</label>
+        <textarea id="case-text" name="text" class="form-textarea"
+                  rows="6" required></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="case-result">Результат</label>
+        <select id="case-result" name="result" class="form-select">
+          <option value="resolved">Обслужен</option>
+          <option value="hospitalized">Госпитализирован</option>
+          <option value="refused">Отказ от помощи</option>
+          <option value="other">Другое</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block">Сохранить</button>
+      <a href="/call/{{ call_id }}" class="btn btn-outline btn-block">Отмена</a>
+    </form>
+  </div>
+{% endblock %}
+
+{% block js %}
+  <script src="{{ url_for('static', filename='js/form.js') }}"></script>
+{% endblock %}

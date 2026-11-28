@@ -1,0 +1,96 @@
+<div id="calls-container">
+  {% for call in calls %}
+    <article class="call-card call-priority-{{ call.priority }}
+      {% if call.is_active_for_me %}call-is-active{% endif %}
+      {% if call.is_completed %}call-is-completed{% endif %}"
+      style="--i: {{ loop.index0 }}">
+      <a href="/call/{{ call.id }}" class="call-card-link">
+        <div class="call-top">
+          <span class="priority-mark priority-mark-{{ call.priority }}">{{ call.priority_label }}</span>
+          <span class="call-number">№ {{ call.number }}</span>
+        </div>
+        <div class="call-reason">{{ call.reason }}</div>
+        <h2 class="call-title">{{ call.patient_name }}</h2>
+        <div class="call-meta">
+          <span class="call-meta-item">
+            <img src="{{ url_for('static', filename='img/icons/pin.png') }}" class="inline-icon" alt="">
+            {{ call.address }}
+          </span>
+          <span class="call-meta-item">
+            <img src="{{ url_for('static', filename='img/icons/phone.png') }}" class="inline-icon" alt="">
+            {{ call.patient_phone }}
+          </span>
+          {% if call.distance_km is not none %}
+            <span class="call-distance">
+              <img src="{{ url_for('static', filename='img/icons/ambulance.png') }}" class="inline-icon" alt="">
+              ≈ {{ call.distance_km }} км
+            </span>
+          {% endif %}
+        </div>
+      </a>
+
+      {% if call.is_completed %}
+        <p class="call-badge call-badge-completed">
+          {% if call.result == 'false' %}Завершён как ложный{% else %}Завершён{% endif %}
+        </p>
+      {% elif call.is_active_for_me %}
+        <p class="call-badge call-badge-active">Ваш активный вызов</p>
+        {% if current_user.role in ('admin', 'superadmin') %}
+        <div class="call-timestamps">
+          <div class="timestamp-item">
+            <span class="timestamp-label">Создан</span>
+            <span class="timestamp-value">{{ call.created_at|default('—') }}</span>
+          </div>
+          <div class="timestamp-item">
+            <span class="timestamp-label">Принят</span>
+            <span class="timestamp-value">{{ call.accepted_at|default('—') }}</span>
+          </div>
+          <div class="timestamp-item">
+            <span class="timestamp-label">Выполнен</span>
+            <span class="timestamp-value">{{ call.completed_at|default('—') }}</span>
+          </div>
+        </div>
+        {% endif %}
+        <a href="/call/{{ call.id }}" class="btn btn-primary btn-block">Открыть вызов</a>
+      {% elif call.active_owner %}
+        <p class="call-badge call-badge-completed">Взят: {{ call.active_owner }}</p>
+      {% else %}
+        {% if current_user.role == 'doctor' %}
+          {% if active_call_id %}
+            <button type="button" class="btn btn-outline btn-block" disabled>
+              Есть активный вызов
+            </button>
+          {% else %}
+            <form action="/call/{{ call.id }}/accept" method="POST" class="accept-form">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-primary btn-block">Взять вызов</button>
+            </form>
+          {% endif %}
+        {% else %}
+          <p class="call-badge call-badge-completed">Свободен</p>
+          <a href="/call/{{ call.id }}" class="btn btn-outline btn-block">Подробнее</a>
+        {% endif %}
+      {% endif %}
+    </article>
+  {% else %}
+    <div class="notice notice-muted">
+      {% if q %}Ничего не найдено по запросу «{{ q_display }}»{% else %}Нет свободных вызовов{% endif %}
+    </div>
+  {% endfor %}
+</div>
+
+{% if total_pages > 1 %}
+  <nav class="pagination" id="pagination" data-page="{{ page }}">
+    {% if page > 1 %}
+      <a class="btn btn-outline pagination-link" data-page="{{ page-1 }}" href="#">← Назад</a>
+    {% else %}
+      <span class="btn btn-outline btn-disabled">← Назад</span>
+    {% endif %}
+    <span class="pagination-info">{{ page }}/{{ total_pages }}</span>
+    {% if page < total_pages %}
+      <a class="btn btn-outline pagination-link" data-page="{{ page+1 }}" href="#">Вперёд →</a>
+    {% else %}
+      <span class="btn btn-outline btn-disabled">Вперёд →</span>
+    {% endif %}
+  </nav>
+{% endif %}

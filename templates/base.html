@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}Скорая{% endblock %}</title>
+
+  <script>
+    (function () {
+      try {
+        var s = JSON.parse(localStorage.getItem('app_settings_v1') || '{}');
+        var theme = s.theme || 'dark';
+        if (s.autoTheme) {
+          var d = new Date();
+          var mins = d.getHours() * 60 + d.getMinutes();
+          if (mins >= 540 && mins < 1020) theme = 'light';
+          else if (mins >= 1020 && mins < 1260) theme = 'gray';
+          else if (mins >= 1260 || mins < 330) theme = 'dark';
+          else theme = 'gray';
+        }
+        document.documentElement.dataset.theme = theme;
+        if (s.fontSize) document.documentElement.dataset.fontSize = s.fontSize;
+        if (s.largeControls) document.documentElement.dataset.largeControls = 'true';
+        if (s.highContrast) document.documentElement.dataset.contrast = 'high';
+        document.documentElement.dataset.uiMode = s.uiMode || 'advanced';
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  {% block css %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  {% block bg_video %}{% endblock %}
+
+  <div class="app-scale">
+    <header class="app-header">
+      <div class="app-header-left">
+        {% if current_user %}
+          <div class="app-user-menu" id="app-user-menu">
+            <button type="button" id="app-user-btn" class="app-user"
+                    aria-haspopup="true" aria-expanded="false"
+                    title="{{ current_user.name }}">
+              <span class="app-user-info">
+                <span class="app-user-name">{{ current_user.name }}</span>
+                <span class="app-user-role">
+                  {% if current_user.role == 'superadmin' %}Главный админ
+                  {% elif current_user.role == 'admin' %}Админ
+                  {% else %}Фельдшер{% endif %}
+                </span>
+              </span>
+              <span class="app-user-avatar" aria-hidden="true">
+                {{ current_user.name[:1]|upper }}
+              </span>
+              <span class="app-user-caret" aria-hidden="true">▾</span>
+            </button>
+
+            <div class="app-user-dropdown" id="app-user-dropdown" hidden>
+              {% if current_user.role in ('admin', 'superadmin') %}
+                {% if request.path.startswith('/admin') %}
+                  <a class="app-user-dropdown-item" href="/">
+                    <img src="{{ url_for('static', filename='img/icons/home.png') }}" class="icon" alt="">
+                    На главную
+                  </a>
+                {% else %}
+                  <a class="app-user-dropdown-item" href="{{ url_for('admin_panel') }}">
+                    <img src="{{ url_for('static', filename='img/icons/shield.png') }}" class="icon" alt="">
+                    Админ-панель
+                  </a>
+                {% endif %}
+              {% endif %}
+
+              <a class="app-user-dropdown-item"
+                 href="{{ doctor_portal_url or '#' }}"
+                 target="_blank" rel="noopener noreferrer">
+                <img src="{{ url_for('static', filename='img/icons/doctor.png') }}" class="icon" alt="">
+                Портал врача
+              </a>
+
+              <button type="button" class="app-user-dropdown-item" id="settings-btn">
+                <img src="{{ url_for('static', filename='img/icons/settings.png') }}" class="icon" alt="">
+                Настройки
+              </button>
+
+              <div class="app-user-dropdown-sep"></div>
+
+              <form method="POST" action="{{ url_for('logout') }}">
+                <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                <button class="app-user-dropdown-item app-user-dropdown-danger" type="submit">
+                  <img src="{{ url_for('static', filename='img/icons/logout.png') }}" class="icon" alt="">
+                  Выйти
+                </button>
+              </form>
+            </div>
+          </div>
+        {% else %}
+          <button id="settings-btn" class="app-nav-link" type="button">
+            <img src="{{ url_for('static', filename='img/icons/settings.png') }}" class="icon" alt="">
+            <span class="label">Настройки</span>
+          </button>
+        {% endif %}
+
+        <span id="app-clock" class="app-clock" hidden>--:--:--</span>
+      </div>
+
+      <div class="app-header-right">
+        <span id="net-status" class="net-badge net-online">
+          <span>Онлайн</span>
+        </span>
+      </div>
+    </header>
+
+    <div id="flash-area" class="flash-area">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="notice notice-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+    </div>
+
+    <main class="app-main">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <div id="settings-overlay" class="settings-overlay"></div>
+  <aside id="settings-panel" class="settings-panel" aria-hidden="true" aria-label="Настройки">
+    <div class="settings-header">
+      <h2 class="settings-title">Настройки</h2>
+      <button id="settings-close" class="settings-close" type="button" aria-label="Закрыть">✕</button>
+    </div>
+
+    <div class="settings-group">
+      <span class="settings-label">Режим интерфейса</span>
+      <div class="settings-options">
+        <button type="button" class="btn btn-outline" data-uimode-set="simple">Простой</button>
+        <button type="button" class="btn btn-outline" data-uimode-set="advanced">Продвинутый</button>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <span class="settings-label">Тема</span>
+      <div class="settings-options">
+        <button type="button" class="btn btn-outline" data-theme-set="light">Светлая</button>
+        <button type="button" class="btn btn-outline" data-theme-set="gray">Серо-белая</button>
+        <button type="button" class="btn btn-outline" data-theme-set="dark">Тёмная</button>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <span class="settings-label">Размер текста</span>
+      <div class="settings-options">
+        <button type="button" class="btn btn-outline" data-size-set="1">1x</button>
+        <button type="button" class="btn btn-outline" data-size-set="1.2">1.2x</button>
+        <button type="button" class="btn btn-outline" data-size-set="1.5">1.5x</button>
+        <button type="button" class="btn btn-outline" data-size-set="2">2x</button>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <span class="settings-label">Часы</span>
+      <label class="settings-toggle">
+        <input type="checkbox" id="set-clock">
+        <span class="settings-toggle-text">Показывать часы в шапке</span>
+      </label>
+      <label class="settings-toggle">
+        <input type="checkbox" id="set-clock-seconds">
+        <span class="settings-toggle-text">Показывать секунды</span>
+      </label>
+    </div>
+
+    <div class="settings-group">
+      <span class="settings-label">Экран</span>
+      <label class="settings-toggle">
+        <input type="checkbox" id="set-auto-theme">
+        <span class="settings-toggle-text">Авто-тема по времени</span>
+      </label>
+    </div>
+
+    <div class="settings-group">
+      <span class="settings-label">Дополнительно</span>
+      <label class="settings-toggle">
+        <input type="checkbox" id="set-large-controls">
+        <span class="settings-toggle-text">Крупные кнопки и поля</span>
+      </label>
+      <label class="settings-toggle">
+        <input type="checkbox" id="set-high-contrast">
+        <span class="settings-toggle-text">Высокий контраст</span>
+      </label>
+    </div>
+
+    <div class="settings-group">
+      <button type="button" id="set-reset" class="btn btn-outline btn-block">
+        Сбросить настройки
+      </button>
+    </div>
+  </aside>
+
+  <script src="{{ url_for('static', filename='js/base.js') }}"></script>
+  {% block js %}{% endblock %}
+</body>
+</html>

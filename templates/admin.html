@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Панель администратора{% endblock %}
+
+{% block css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+  <section class="admin-hero">
+    <div class="admin-hero-main">
+      <h1 class="admin-hero-title">Панель управления</h1>
+      <p class="admin-hero-sub">Мониторинг вызовов, управление бригадами и история</p>
+    </div>
+    <div class="admin-hero-meta">
+      <div class="admin-profile">
+        <div class="admin-avatar">{{ current_user.name[:1]|upper }}</div>
+        <div class="admin-profile-info">
+          <span class="admin-profile-name">{{ current_user.name }}</span>
+          <span class="admin-profile-role">
+            {% if current_user.role == 'superadmin' %}Главный админ{% else %}Админ{% endif %}
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="admin-section">
+    <div class="stats-grid">
+      <div class="stats-card">
+        <div class="stats-card-head">
+          <div class="stats-icon-wrap"><img src="{{ url_for('static', filename='img/icons/check-circle.png') }}" alt=""></div>
+          <span class="stats-title">Завершено</span>
+        </div>
+        <div class="stats-value">{{ stats.completed }}</div>
+        <div class="stats-desc">Успешные вызовы</div>
+      </div>
+
+      <div class="stats-card stats-card-danger">
+        <div class="stats-card-head">
+          <div class="stats-icon-wrap"><img src="{{ url_for('static', filename='img/icons/ban.png') }}" alt=""></div>
+          <span class="stats-title">Ложные</span>
+        </div>
+        <div class="stats-value">{{ stats.false }}</div>
+        <div class="stats-desc">Отменённые вызовы</div>
+      </div>
+
+      <div class="stats-card stats-card-warning">
+        <div class="stats-card-head">
+          <div class="stats-icon-wrap"><img src="{{ url_for('static', filename='img/icons/ambulance.png') }}" alt=""></div>
+          <span class="stats-title">В работе</span>
+        </div>
+        <div class="stats-value">{{ stats.in_progress }}</div>
+        <div class="stats-desc">Активные бригады</div>
+      </div>
+
+      <div class="stats-card">
+        <div class="stats-card-head">
+          <div class="stats-icon-wrap"><img src="{{ url_for('static', filename='img/icons/clipboard.png') }}" alt=""></div>
+          <span class="stats-title">Всего</span>
+        </div>
+        <div class="stats-value">{{ stats.total }}</div>
+        <div class="stats-desc">Все вызовы в базе</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="admin-layout">
+    <section class="admin-section admin-col-main">
+      <div class="admin-section-header">
+        <h2 class="admin-section-title">Бригады и персонал</h2>
+        <button type="button" id="toggle-create-form" class="btn btn-primary btn-sm">+ Добавить</button>
+      </div>
+
+      <div class="users-grid">
+        {% for d in doctors %}
+          <div class="user-card">
+            <div class="user-card-head">
+              <div class="user-avatar">{{ d.name[:1]|upper }}</div>
+              <div class="user-info">
+                <div class="user-name">{{ d.name }}</div>
+                <div class="user-login">@{{ d.login }}</div>
+              </div>
+              <div class="user-role">
+                {% if d.role == 'superadmin' %}
+                  <span class="role-badge role-superadmin">Главный</span>
+                {% elif d.role == 'admin' %}
+                  <span class="role-badge role-admin">Админ</span>
+                {% else %}
+                  <span class="role-badge role-doctor">Фельдшер</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="user-card-body">
+              <div class="user-status">
+                <span class="status-label">Активный вызов:</span>
+                {% if d.active_call_id %}
+                  <span class="status-value status-busy">#{{ d.active_call_id }}</span>
+                {% else %}
+                  <span class="status-value status-free">Нет</span>
+                {% endif %}
+              </div>
+            </div>
+
+            {% if d.active_call_id %}
+            <div class="user-card-footer">
+              <form method="POST" action="{{ url_for('admin_reset', login=d.login) }}" onsubmit="return confirm('Сбросить вызов у этого пользователя?');">
+                <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                <button class="btn btn-outline btn-sm btn-block" type="submit">Сбросить вызов</button>
+              </form>
+            </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      <section id="create-user-section" style="display:none; margin-top:1.5rem;">
+        <h2 class="admin-section-title">Создать пользователя</h2>
+        <form method="POST" action="{{ url_for('admin_create_user') }}" class="admin-form" style="margin-top:1rem;">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <div class="form-group">
+            <label class="form-label" for="new-login">Логин</label>
+            <input id="new-login" type="text" name="login" class="form-textarea" required autocomplete="off" spellcheck="false" placeholder="например, ivanov">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="new-name">Имя</label>
+            <input id="new-name" type="text" name="name" class="form-textarea" required autocomplete="off" placeholder="Фельдшер Иванов">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="new-password">Пароль</label>
+            <input id="new-password" type="password" name="password" class="form-textarea" required autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="new-role">Роль</label>
+            <select id="new-role" name="role" class="form-select" required>
+              <option value="doctor">Фельдшер</option>
+              <option value="admin">Админ</option>
+              {% if current_user.role == 'superadmin' %}
+                <option value="superadmin">Главный админ</option>
+              {% endif %}
+            </select>
+          </div>
+          <button class="btn btn-primary" type="submit">Создать пользователя</button>
+        </form>
+      </section>
+    </section>
+
+    <div class="admin-col-side">
+      <section class="admin-section">
+        <h2 class="admin-section-title">История вызовов</h2>
+        <div class="history-list">
+          {% for c in history %}
+            <a class="history-item" href="{{ url_for('call_card', call_id=c.id) }}">
+              <div class="history-main">
+                <span class="history-number">#{{ c.id }}</span>
+                <span class="history-patient">{{ c.patient_name }}</span>
+                <span class="history-address">{{ c.address }}</span>
+              </div>
+              <div class="history-status">
+                {% if c.result == 'false' %}
+                  <span class="badge badge-status-critical">Ложный</span>
+                {% else %}
+                  <span class="badge badge-status-low">Завершён</span>
+                {% endif %}
+              </div>
+            </a>
+          {% endfor %}
+          {% if not history %}
+            <div class="notice notice-muted" style="margin:0;">История пуста</div>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+  </div>
+{% endblock %}
+
+{% block js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const toggleBtn = document.getElementById("toggle-create-form");
+    const createSection = document.getElementById("create-user-section");
+
+    if (toggleBtn && createSection) {
+      toggleBtn.addEventListener("click", () => {
+        if (createSection.style.display === "none") {
+          createSection.style.display = "block";
+          toggleBtn.textContent = "× Скрыть";
+          toggleBtn.classList.remove("btn-primary");
+          toggleBtn.classList.add("btn-outline");
+        } else {
+          createSection.style.display = "none";
+          toggleBtn.textContent = "+ Добавить";
+          toggleBtn.classList.remove("btn-outline");
+          toggleBtn.classList.add("btn-primary");
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}

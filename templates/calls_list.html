@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}Список вызовов{% endblock %}
+{% block body_class %}is-home{% endblock %}
+
+{% block bg_video %}
+<video id="home-bg-video" class="bg-video" autoplay muted loop playsinline preload="auto"
+       poster="{{ url_for('static', filename='video/home-bg.jpg') }}">
+  <source src="{{ url_for('static', filename='video/home-bg.mp4') }}" type="video/mp4">
+</video>
+{% endblock %}
+
+{% block css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/calls_list.css') }}">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+{% endblock %}
+
+{% block content %}
+  {% if current_user.role == 'doctor' and my_active_call %}
+    <section class="active-call-hero">
+      <div class="active-call-hero-head">
+        <span class="active-call-hero-badge">
+          <img src="{{ url_for('static', filename='img/icons/target.png') }}" class="inline-icon" alt="">
+          Ваш активный вызов
+        </span>
+        <span class="active-call-hero-distance">
+          {% if my_active_call.distance_km is not none %}
+            <img src="{{ url_for('static', filename='img/icons/ambulance.png') }}" class="inline-icon" alt="">
+            ≈ {{ my_active_call.distance_km }} км
+          {% endif %}
+        </span>
+      </div>
+      <h1 class="active-call-hero-title">{{ my_active_call.patient_name }}</h1>
+      <p class="active-call-hero-address">
+        <img src="{{ url_for('static', filename='img/icons/pin.png') }}" class="inline-icon" alt="">
+        {{ my_active_call.address }}
+      </p>
+      <p class="active-call-hero-phone">
+        <img src="{{ url_for('static', filename='img/icons/phone.png') }}" class="inline-icon" alt="">
+        {{ my_active_call.patient_phone }}
+      </p>
+      <div class="active-call-hero-actions">
+        <a href="/call/{{ my_active_call.id }}" class="btn btn-primary btn-block">
+          Открыть вызов
+        </a>
+        <a href="/map/route/{{ my_active_call.id }}" class="btn btn-outline btn-block">
+          <img src="{{ url_for('static', filename='img/icons/route.png') }}" class="inline-icon" alt="">
+          Маршрут
+        </a>
+      </div>
+    </section>
+  {% endif %}
+
+  {% if current_user.role == 'doctor' and not my_active_call %}
+    <div class="doctor-idle-banner">
+      <span class="doctor-idle-icon"><img src="{{ url_for('static', filename='img/icons/doctor.png') }}" alt=""></span>
+      <div>
+        <strong>Нет активного вызова.</strong>
+        Возьмите вызов из списка ниже — он появится здесь как главный экран.
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="page-actions">
+    <button type="button" id="map-toggle-btn" class="btn btn-outline">
+      <img src="{{ url_for('static', filename='img/icons/map.svg') }}" class="inline-icon" alt="">
+      Карта <span class="map-toggle-state">[off]</span>
+    </button>
+
+    {% if current_user.role in ('admin', 'superadmin') %}
+      <button type="button" id="list-toggle-btn" class="btn btn-outline">
+        <img src="{{ url_for('static', filename='img/icons/list.svg') }}" class="inline-icon" alt="">
+        Показать список вызовов <span class="list-toggle-state">[{{ 'on' if list_on else 'off' }}]</span>
+      </button>
+    {% endif %}
+
+    {% if current_user.role == 'doctor' %}
+      <button type="button" id="sort-distance-btn"
+              class="btn btn-outline {% if view == 'nearest' %}btn-active{% endif %}">
+        <img src="{{ url_for('static', filename='img/icons/pin.png') }}" class="inline-icon" alt="">
+        Ближайший вызов
+      </button>
+    {% endif %}
+
+    <a href="/" id="refresh-btn" class="btn btn-outline">
+      <img src="{{ url_for('static', filename='img/icons/refresh.png') }}" class="inline-icon" alt="">
+      Обновить
+    </a>
+  </div>
+
+  <form method="GET" action="/" class="search-form" id="search-form">
+    <div class="search-input-wrap" id="search-input-wrap">
+      <div id="phone-mask-view" class="phone-mask-view" hidden></div>
+      <input id="calls-search" name="q" class="search-input"
+             type="search" placeholder="Поиск по базе вызовов"
+             value="{{ q }}">
+    </div>
+
+    <div class="search-field-wrap">
+      <button type="button" id="filters-toggle" class="btn btn-outline search-field-btn">
+        <span id="filters-label">
+          {% if field == 'address' %}Поиск по адресу
+          {% elif field == 'phone' %}Поиск по номеру телефона
+          {% else %}Поиск по ФИО{% endif %}
+          {% if priority %} · {{ priority_labels[priority] }}{% endif %}
+          {% if sort == 'oldest' %} · Сначала старые{% endif %}
+        </span>
+        <span class="caret">▾</span>
+      </button>
+
+      <div id="filters-menu" class="search-field-menu filters-menu" hidden>
+        <div class="filters-group">
+          <span class="filters-group-title">Поле поиска</span>
+          <button type="button" data-field="name" class="{% if field == 'name' %}is-active{% endif %}">Поиск по ФИО</button>
+          <button type="button" data-field="address" class="{% if field == 'address' %}is-active{% endif %}">Поиск по адресу</button>
+          <button type="button" data-field="phone" class="{% if field == 'phone' %}is-active{% endif %}">Поиск по номеру телефона</button>
+        </div>
+        <div class="filters-group">
+          <span class="filters-group-title">Тяжесть</span>
+          <button type="button" data-priority="" class="{% if not priority %}is-active{% endif %}">Все</button>
+          <button type="button" data-priority="emergency" class="{% if priority == 'emergency' %}is-active{% endif %}">Экстренный</button>
+          <button type="button" data-priority="urgent" class="{% if priority == 'urgent' %}is-active{% endif %}">Срочный</button>
+          <button type="button" data-priority="planned" class="{% if priority == 'planned' %}is-active{% endif %}">Плановый</button>
+        </div>
+        <div class="filters-group">
+          <span class="filters-group-title">Новизна</span>
+          <button type="button" data-sort="newest" class="{% if sort == 'newest' %}is-active{% endif %}">Сначала новые</button>
+          <button type="button" data-sort="oldest" class="{% if sort == 'oldest' %}is-active{% endif %}">Сначала старые</button>
+        </div>
+      </div>
+    </div>
+
+    <input type="hidden" name="field" id="field-input" value="{{ field }}">
+    <input type="hidden" name="priority" id="priority-input" value="{{ priority }}">
+    <input type="hidden" name="sort" id="sort-input" value="{{ sort }}">
+    <input type="hidden" name="view" id="view-input" value="{{ view }}">
+  </form>
+
+  <div id="content-area" {% if current_user.role in ('admin', 'superadmin') and not list_on %}style="display:none;"{% endif %}>
+    <div id="results" data-view="{{ view }}">
+      {% include "_calls_results.html" %}
+    </div>
+  </div>
+
+  <div class="map-page" id="map-shell" style="display:none;">
+    {% if current_user.role in ('admin', 'superadmin') %}
+      <div class="map-page-head">
+        <div class="map-page-head-main">
+          <h2 class="map-page-title">Карта вызовов</h2>
+          <p class="map-page-sub">
+            Машины скорой помощи, вызовы и активные маршруты на карте города
+          </p>
+        </div>
+        <div class="map-page-metrics">
+          <div class="map-metric">
+            <span class="map-metric-value" id="metric-calls">0</span>
+            <span class="map-metric-label">вызовов</span>
+          </div>
+          <div class="map-metric">
+            <span class="map-metric-value" id="metric-ambulances">0</span>
+            <span class="map-metric-label">машин</span>
+          </div>
+          <div class="map-metric">
+            <span class="map-metric-value" id="metric-active">0</span>
+            <span class="map-metric-label">на вызове</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="map-page-body">
+        <div class="map-page-aside">
+          <div class="map-panel">
+            <h3 class="map-panel-title">Слои карты</h3>
+            <div class="map-layers-buttons" aria-label="Слои карты">
+              <button type="button" id="layer-btn-ambulances"
+                      class="map-layer-btn is-active" data-layer="ambulances"
+                      aria-pressed="true" title="Машины скорой помощи">
+                <span class="map-layer-btn-icon"><img src="{{ url_for('static', filename='img/icons/ambulance.png') }}" alt=""></span>
+                <span class="map-layer-btn-label">Машины</span>
+              </button>
+              <button type="button" id="layer-btn-calls"
+                      class="map-layer-btn is-active" data-layer="calls"
+                      aria-pressed="true" title="Вызовы скорой помощи">
+                <span class="map-layer-btn-icon"><img src="{{ url_for('static', filename='img/icons/pin.png') }}" alt=""></span>
+                <span class="map-layer-btn-label">Вызовы</span>
+              </button>
+              <button type="button" id="layer-btn-active"
+                      class="map-layer-btn" data-layer="active"
+                      aria-pressed="false" title="Скорые на вызове">
+                <span class="map-layer-btn-icon"><img src="{{ url_for('static', filename='img/icons/target.png') }}" alt=""></span>
+                <span class="map-layer-btn-label">На вызове</span>
+              </button>
+            </div>
+            <p class="map-panel-hint">
+              Нажимайте на слой, чтобы показать или скрыть объекты на карте.
+            </p>
+          </div>
+        </div>
+
+        <div class="map-frame">
+          <div class="map-square">
+            <div id="map" class="map-container"
+                 data-active-call-id="{{ active_call_id or '' }}"
+                 data-accept-id="{{ accept_id or '' }}"
+                 data-role="{{ current_user.role }}"
+                 data-focus-call="{{ focus_call or '' }}"
+                 {% if map_on %}data-init-map="1"{% endif %}></div>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="map-frame map-frame-solo">
+        <div class="map-square">
+          <div id="map" class="map-container"
+               data-active-call-id="{{ active_call_id or '' }}"
+               data-accept-id="{{ accept_id or '' }}"
+               data-role="{{ current_user.role }}"
+               data-focus-call="{{ focus_call or '' }}"
+               {% if map_on %}data-init-map="1"{% endif %}></div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block js %}
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='js/calls_list.js') }}"></script>
+  <script>
+    (function () {
+      const bg = document.getElementById("home-bg-video");
+      if (bg) {
+        bg.playbackRate = 0.5;
+        bg.addEventListener("play", () => { bg.playbackRate = 0.5; });
+        bg.addEventListener("loadedmetadata", () => { bg.playbackRate = 0.5; });
+      }
+    })();
+  </script>
+{% endblock %}
