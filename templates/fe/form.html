@@ -1,4 +1,5 @@
 {% extends "fe/base.html" %}
+{% from "fe/_icons.html" import icon_warn %}
 {% block title %}{{ form_title }}{% endblock %}
 
 {% block css %}
@@ -10,8 +11,7 @@
     <h1 class="page-title">{{ form_title }}</h1>
 
     <div id="offline-banner" class="form-offline-banner">
-      ⚠ Нет связи. Запись сохранится локально и отправится автоматически,
-      когда появится интернет.
+      {{ icon_warn() }} Нет связи. Запись сохранится локально и отправится, когда появится интернет.
     </div>
 
     <form action="{{ form_action }}" method="POST" data-offline-queue>

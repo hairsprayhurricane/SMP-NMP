@@ -1,4 +1,5 @@
 {% extends "fe/base.html" %}
+{% from "fe/_icons.html" import icon_pin, icon_ambulance, icon_route, icon_user %}
 {% block title %}Действия по вызову #{{ call.number }}{% endblock %}
 
 {% block css %}
@@ -11,18 +12,18 @@
 
     <h1 class="page-title">Вызов #{{ call.number }}</h1>
     <p class="map-action-patient">{{ call.patient_name }}</p>
-    <p class="map-action-address">📍 {{ call.address }}</p>
+    <p class="map-action-address">{{ icon_pin() }} {{ call.address }}</p>
     {% if call.distance_km is not none %}
-      <p class="map-action-distance">🚑 ≈ {{ call.distance_km }} км от скорой</p>
+      <p class="map-action-distance">{{ icon_ambulance() }} {{ call.distance_km }} км от подстанции</p>
     {% endif %}
 
     <div class="map-action-buttons">
       <a href="/fe/map/route/{{ call.id }}" class="btn btn-primary btn-block">
-        🧭 Построить оптимальный маршрут по адресу {{ call.address }}
+        {{ icon_route() }} Построить маршрут
       </a>
 
       <a href="/fe/patient/{{ call.patient_id }}" class="btn btn-secondary btn-block">
-        👤 Данные о пациенте
+        {{ icon_user() }} Данные о пациенте
       </a>
 
       <a href="javascript:history.back()" class="btn btn-outline btn-block">

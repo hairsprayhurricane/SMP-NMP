@@ -47,8 +47,13 @@
     </div>
 
     <div class="patient-actions">
+      {% if read_only %}
+      <a id="appointment-btn" class="btn btn-primary btn-block disabled" aria-disabled="true"
+         title="Нет связи с сервером — запись временно недоступна">Записать на приём</a>
+      {% else %}
       <a id="appointment-btn" href="/fe/patient/{{ patient.id }}/appointment/new"
          class="btn btn-primary btn-block">Записать на приём</a>
+      {% endif %}
     </div>
 
     <h2 class="section-title">Записи на приём</h2>

@@ -76,7 +76,7 @@ def login():
             db.audit(conn, "login.failed", username=username)
             flash("Неверный логин или пароль.", "danger")
 
-    return render_template("login.html", next_url=next_url or "")
+    return render_template("fe/login.html", next_url=next_url or "")
 
 
 @bp.route("/logout", methods=["POST"])

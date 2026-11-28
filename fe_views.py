@@ -74,6 +74,8 @@ def inject_fe_globals():
         "priority_labels": PRIORITY_LABELS,
         "status_labels": STATUS_LABELS,
         "doctor_portal_url": config.DOCTOR_PORTAL_URL,
+        "map_tile_url": config.MAP_TILE_URL,
+        "map_attribution": config.MAP_ATTRIBUTION,
     }
 
 
@@ -92,10 +94,19 @@ def haversine_km(lat1, lng1, lat2, lng2):
 
 
 def _all_calls():
-    """Все вызовы из API. При недоступности — пустой список + flash."""
+    """Все вызовы из API. При недоступности — кэш «последнего известного» или пустой список."""
     try:
         return api.get_calls()
     except ApiError as exc:
+        stale, age = api.get_cached_calls()
+        if stale is not None:
+            flash(
+                "Нет связи с сервером: показан последний загруженный список вызовов "
+                "(возраст %d с). Данные только для чтения; новые записи "
+                "временно недоступны." % age,
+                "warning",
+            )
+            return stale
         flash("Не удалось загрузить вызовы. " + exc.user_message, "danger")
         return []
 
@@ -667,14 +678,25 @@ def _fe_patient(patient):
 @bp.route("/patient/<int:patient_id>")
 @permission_required("patients.view")
 def patient_card(patient_id):
+    read_only = False
     try:
         patient = api.get_patient(str(patient_id))
     except NotFoundError:
         flash("Пациент #%s не найден" % patient_id, "danger")
-        return render_template("fe/patient_card.html", patient=None, appointments=[])
+        return render_template("fe/patient_card.html", patient=None, appointments=[], read_only=False)
     except ApiError as exc:
-        flash("Не удалось загрузить пациента. " + exc.user_message, "danger")
-        return render_template("fe/patient_card.html", patient=None, appointments=[])
+        stale, age = api.get_cached_patient(str(patient_id))
+        if stale is None:
+            flash("Не удалось загрузить пациента. " + exc.user_message, "danger")
+            return render_template("fe/patient_card.html", patient=None, appointments=[], read_only=False)
+        patient = stale
+        read_only = True
+        flash(
+            "Нет связи с сервером: показана последняя загруженная карточка пациента "
+            "(возраст %d с). Данные только для чтения; запись на приём "
+            "временно недоступна." % age,
+            "warning",
+        )
     try:
         appointments = api.get_appointments(str(patient_id))
     except ApiError:
@@ -689,6 +711,7 @@ def patient_card(patient_id):
         patient=_fe_patient(patient),
         appointments=fe_appointments,
         call_id=request.args.get("call_id", type=int),
+        read_only=read_only,
     )
 
 

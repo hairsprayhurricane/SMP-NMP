@@ -1,22 +1,22 @@
-.form-page .page-title { margin-bottom: 1.5rem; }
+.form-page .page-title { margin-bottom: 14px; }
 .form-group { margin-bottom: 1rem; }
 
 .form-label {
-  display: block; font-size: 1.05rem; font-weight: 600; margin-bottom: 0.5rem;
+  display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px;
 }
 
 .form-textarea, .form-select {
   width: 100%;
-  padding: 0.75rem 1rem;
-  font-size: 18px;
+  padding: 7px 10px;
+  font-size: 14px;
   font-family: inherit;
   background: var(--bg-card);
   color: var(--text);
-  border: 2px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   resize: vertical;
-  min-height: 56px;
-  transition: border-color var(--transition), box-shadow var(--transition);
+  min-height: 38px;
+  transition: border-color var(--transition);
 }
 .form-textarea:focus, .form-select:focus {
   outline: none;
@@ -30,11 +30,10 @@
 .form-offline-banner {
   display: none;
   background: var(--notice-warning-bg);
-  border-left: 4px solid var(--warning);
+  border-left: 3px solid var(--warning);
   color: var(--notice-warning-text);
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-  animation: notice-in var(--transition-slow) ease both;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  margin-bottom: 10px;
 }
 .form-offline-banner.visible { display: block; }

@@ -26,13 +26,23 @@
         if (isNaN(lat) || isNaN(lon)) throw new Error("bad coordinates");
 
         // На планшете один палец прокручивает страницу, а не двигает карту; масштаб: щипок или кнопки +/-.
-        map = L.map(mapEl, { scrollWheelZoom: false, dragging: !L.Browser.mobile });
+        map = L.map(mapEl, {
+          scrollWheelZoom: false,
+          dragging: !L.Browser.mobile,
+          maxBounds: [[42.7, 38.2], [44.5, 41.5]],
+          maxBoundsViscosity: 1.0,
+          minZoom: 10
+        });
         map.setView([lat, lon], zoom);
 
-        var layer = L.tileLayer(mapEl.getAttribute("data-tiles"), {
-          maxZoom: 19,
-          attribution: mapEl.getAttribute("data-attribution") || ""
-        });
+        var layer = L.tileLayer(
+          mapEl.getAttribute("data-tiles") || "/tiles/{z}/{x}/{y}.png",
+          {
+            maxZoom: 19,
+            attribution: mapEl.getAttribute("data-attribution") || "© 2ГИС"
+          }
+        );
+        if (map.attributionControl) map.attributionControl.setPrefix(false);
         var loaded = 0;
         var failed = 0;
         layer.on("tileload", function () { loaded += 1; });

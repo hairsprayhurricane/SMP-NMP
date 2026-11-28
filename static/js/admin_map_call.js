@@ -18,13 +18,19 @@
 
   if (isNaN(callLat) || isNaN(callLng)) return;
 
-  const map = L.map(el, { zoomControl: true, attributionControl: true })
-    .setView([callLat, callLng], 13);
+  const map = L.map(el, {
+    zoomControl: true,
+    attributionControl: true,
+    maxBounds: [[42.7, 38.2], [44.5, 41.5]],
+    maxBoundsViscosity: 1.0,
+    minZoom: 10,
+  }).setView([callLat, callLng], 13);
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  L.tileLayer(el.dataset.tiles || "/tiles/{z}/{x}/{y}.png", {
     maxZoom: 19,
-    attribution: "© OpenStreetMap contributors",
+    attribution: el.dataset.attribution || "© 2ГИС",
   }).addTo(map);
+  if (map.attributionControl) map.attributionControl.setPrefix(false);
 
   setTimeout(() => map.invalidateSize(), 150);
 
@@ -40,7 +46,7 @@
 
   const ownerIcon = L.divIcon({
     className: "ambulance-marker",
-    html: "🚑",
+    html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block" aria-hidden="true"><path d="M9.5 3h5v6.5H21v5h-6.5V21h-5v-6.5H3v-5h6.5z" fill="currentColor" stroke="none"/></svg>',
     iconSize: [32, 32],
     iconAnchor: [16, 16],
   });

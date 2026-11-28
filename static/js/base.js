@@ -161,7 +161,7 @@
 
   const SETTINGS_KEY = "app_settings_v1";
   const DEFAULTS = {
-    theme: "dark",
+    theme: "light",
     fontSize: "1",
     clockVisible: false,
     clockSeconds: true,

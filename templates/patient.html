@@ -8,8 +8,10 @@
   {% else %}
   <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('index') }}">Назад к списку</a>
   {% endif %}
-  {% if can('appointments.add') %}
+  {% if can('appointments.add') and not read_only %}
   <a class="btn btn-success btn-lg" href="{{ url_for('appointment_new', patient_id=patient.id, call=call_id or None) }}">Записать на приём к врачу</a>
+  {% elif read_only %}
+  <a class="btn btn-success btn-lg disabled" aria-disabled="true" title="Нет связи с сервером — запись временно недоступна">Записать на приём к врачу</a>
   {% endif %}
 </div>
 

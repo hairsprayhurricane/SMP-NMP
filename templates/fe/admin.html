@@ -1,47 +1,44 @@
 {% extends "fe/base.html" %}
+{% from "fe/_icons.html" import icon_check, icon_ban, icon_ambulance, icon_list %}
 {% block title %}Панель администратора{% endblock %}
 
 {% block css %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/form.css') }}">
 {% endblock %}
 
 {% block content %}
   <section class="admin-hero">
     <div class="admin-hero-main">
       <h1 class="admin-hero-title">Панель администратора</h1>
-      <p class="admin-hero-sub">
-        Управление пользователями, активными вызовами и историей обслуживания
-      </p>
-    </div>
-    <div class="admin-hero-meta">
-      <span class="admin-hero-badge">Админ · {{ current_user.name }}</span>
+      <p class="admin-hero-sub">Пользователи, вызовы, история</p>
     </div>
   </section>
 
   <section class="admin-section">
     <header class="admin-section-head">
       <h2 class="admin-section-title">Сводка</h2>
-      <p class="admin-section-sub">Ключевые показатели по вызовам</p>
+      <p class="admin-section-sub">За текущий день</p>
     </header>
 
     <div class="stats-grid">
       <div class="stats-card">
-        <div class="stats-icon" aria-hidden="true">✅</div>
+        <div class="stats-icon" aria-hidden="true">{{ icon_check() }}</div>
         <div class="stats-value">{{ stats.completed }}</div>
         <div class="stats-label">Завершено вызовов</div>
       </div>
       <div class="stats-card stats-card-danger">
-        <div class="stats-icon" aria-hidden="true">🚫</div>
+        <div class="stats-icon" aria-hidden="true">{{ icon_ban() }}</div>
         <div class="stats-value">{{ stats.false }}</div>
         <div class="stats-label">Ложных вызовов</div>
       </div>
       <div class="stats-card stats-card-warning">
-        <div class="stats-icon" aria-hidden="true">🚑</div>
+        <div class="stats-icon" aria-hidden="true">{{ icon_ambulance() }}</div>
         <div class="stats-value">{{ stats.in_progress }}</div>
         <div class="stats-label">В работе сейчас</div>
       </div>
       <div class="stats-card">
-        <div class="stats-icon" aria-hidden="true">📋</div>
+        <div class="stats-icon" aria-hidden="true">{{ icon_list() }}</div>
         <div class="stats-value">{{ stats.total }}</div>
         <div class="stats-label">Всего вызовов</div>
       </div>
@@ -51,7 +48,7 @@
   <section class="admin-section">
     <header class="admin-section-head">
       <h2 class="admin-section-title">Пользователи</h2>
-      <p class="admin-section-sub">Список учётных записей и их активные вызовы</p>
+      <p class="admin-section-sub">Учётные записи и активные вызовы</p>
     </header>
 
     <div class="admin-table-wrap">
@@ -107,7 +104,7 @@
   <section class="admin-section">
     <header class="admin-section-head">
       <h2 class="admin-section-title">Создать пользователя</h2>
-      <p class="admin-section-sub">Новая учётная запись с доступом к системе</p>
+      <p class="admin-section-sub">Новая учётная запись</p>
     </header>
 
     <form method="POST" action="{{ url_for('fe.admin_create_user') }}" class="admin-form">
@@ -155,7 +152,7 @@
   <section class="admin-section">
     <header class="admin-section-head">
       <h2 class="admin-section-title">История вызовов</h2>
-      <p class="admin-section-sub">Завершённые и ложные вызовы</p>
+      <p class="admin-section-sub">Завершённые и ложные</p>
     </header>
 
     <div class="admin-table-wrap">

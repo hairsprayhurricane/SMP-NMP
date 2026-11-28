@@ -13,6 +13,7 @@ import logging
 import requests
 
 import config
+import secure_cache
 
 log = logging.getLogger("smp.api")
 
@@ -235,7 +236,14 @@ def _norm_appointment(raw):
 # --- Публичные функции ------------------------------------------------------
 def get_calls():
     data = _request("GET", EP_CALLS)
-    return [_norm_call(r) for r in _as_list(data, "calls", "items") if isinstance(r, dict)]
+    calls = [_norm_call(r) for r in _as_list(data, "calls", "items") if isinstance(r, dict)]
+    secure_cache.store("calls", calls)
+    return calls
+
+
+def get_cached_calls():
+    """Последний загруженный список вызовов из кэша в ОЗУ: (список, возраст_сек)."""
+    return secure_cache.fetch("calls")
 
 
 def get_call(call_id):
@@ -243,7 +251,14 @@ def get_call(call_id):
 
 
 def get_patient(patient_id):
-    return _norm_patient(_as_dict(_request("GET", EP_PATIENT.format(patient_id=patient_id))))
+    patient = _norm_patient(_as_dict(_request("GET", EP_PATIENT.format(patient_id=patient_id))))
+    secure_cache.store("patient:%s" % patient_id, patient)
+    return patient
+
+
+def get_cached_patient(patient_id):
+    """Последняя загруженная карточка пациента из кэша в ОЗУ: (данные, возраст_сек)."""
+    return secure_cache.fetch("patient:%s" % patient_id)
 
 
 def get_cases(call_id):

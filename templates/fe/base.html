@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru" data-theme="dark">
+<html lang="ru" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport"
@@ -11,7 +11,7 @@
     (function () {
       try {
         var s = JSON.parse(localStorage.getItem('app_settings_v1') || '{}');
-        var theme = s.theme || 'dark';
+        var theme = s.theme || 'light';
         if (s.autoTheme) {
           var d = new Date();
           var mins = d.getHours() * 60 + d.getMinutes();
@@ -51,18 +51,18 @@
               <span class="app-user-avatar" aria-hidden="true">
                 {{ current_user.name[:1]|upper }}
               </span>
-              <span class="app-user-caret" aria-hidden="true">▾</span>
+              <span class="app-user-caret" aria-hidden="true">{% from "fe/_icons.html" import icon_chevron %}{{ icon_chevron() }}</span>
             </button>
 
             <div class="app-user-dropdown" id="app-user-dropdown" hidden>
               {% if current_user.role in ('admin', 'superadmin') %}
                 {% if request.path.startswith('/fe/admin') %}
                   <a class="app-user-dropdown-item" href="/fe/">
-                    <span aria-hidden="true">🏠</span> На главную
+                    На главную
                   </a>
                 {% else %}
                   <a class="app-user-dropdown-item" href="{{ url_for('fe.admin_panel') }}">
-                    <span aria-hidden="true">🛡</span> Админ-панель
+                    Админ-панель
                   </a>
                 {% endif %}
               {% endif %}
@@ -70,11 +70,11 @@
               <a class="app-user-dropdown-item"
                  href="{{ doctor_portal_url or '#' }}"
                  target="_blank" rel="noopener noreferrer">
-                <span aria-hidden="true">🩺</span> Портал врача
+                Портал врача
               </a>
 
               <button type="button" class="app-user-dropdown-item" id="settings-btn">
-                <span aria-hidden="true">⚙</span> Настройки
+                Настройки
               </button>
 
               <div class="app-user-dropdown-sep"></div>
@@ -82,14 +82,14 @@
               <form method="POST" action="{{ url_for('auth.logout') }}">
                 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
                 <button class="app-user-dropdown-item app-user-dropdown-danger" type="submit">
-                  <span aria-hidden="true">↩</span> Выйти
+                  Выйти
                 </button>
               </form>
             </div>
           </div>
         {% else %}
           <button id="settings-btn" class="app-nav-link" type="button">
-            <span aria-hidden="true">⚙</span> <span class="label">Настройки</span>
+            <span class="label">Настройки</span>
           </button>
         {% endif %}
 
@@ -120,7 +120,7 @@
   <aside id="settings-panel" class="settings-panel" aria-hidden="true" aria-label="Настройки">
     <div class="settings-header">
       <h2 class="settings-title">Настройки</h2>
-      <button id="settings-close" class="settings-close" type="button" aria-label="Закрыть">✕</button>
+      <button id="settings-close" class="settings-close" type="button" aria-label="Закрыть">{% from "fe/_icons.html" import icon_x %}{{ icon_x() }}</button>
     </div>
 
     <div class="settings-group">
@@ -181,6 +181,7 @@
     </div>
   </aside>
 
+  <script src="{{ url_for('static', filename='js/sw-register.js') }}"></script>
   <script src="{{ url_for('static', filename='js/base.js') }}"></script>
   {% block js %}{% endblock %}
 </body>

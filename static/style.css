@@ -1,4 +1,6 @@
 /* Поверх Bootstrap: крупные цели для нажатия на планшете */
+.ic { width: 1.05em; height: 1.05em; vertical-align: -0.18em; }
+
 body { font-size: 1.05rem; }
 .btn { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; }
 .btn.w-100 { display: flex; }

@@ -3,21 +3,13 @@
 
 {% block head_extra %}
 {% if map_info.embedded %}
-  {% if leaflet_local %}
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.css') }}">
-  {% else %}
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-  {% endif %}
 {% endif %}
 {% endblock %}
 
 {% block scripts %}
 {% if map_info.embedded %}
-  {% if leaflet_local %}
   <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
-  {% else %}
-  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-  {% endif %}
 {% endif %}
 {% if map_info.has_point %}
 <script src="{{ url_for('static', filename='map.js') }}"></script>

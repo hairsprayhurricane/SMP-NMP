@@ -1,4 +1,5 @@
 {% extends "fe/base.html" %}
+{% from "fe/_icons.html" import icon_cross, icon_eye %}
 {% block title %}Вход{% endblock %}
 
 {% block css %}
@@ -7,83 +8,161 @@
 
 {% block content %}
   <div class="login-lock">
-    <div class="auth-shell">
-      <div class="auth-visual" aria-hidden="true">
-        <div class="auth-visual-pulse"></div>
-        <div class="auth-visual-grid"></div>
-        <div class="auth-visual-cross">
-          <span class="auth-visual-cross-v"></span>
-          <span class="auth-visual-cross-h"></span>
-        </div>
-        <div class="auth-visual-text">
-          <div class="auth-visual-title">Скорая помощь</div>
-          <div class="auth-visual-sub">Диспетчерская · вызовы · маршруты</div>
+    <div class="auth-scene" aria-hidden="true">
+      <canvas id="auth-stars" class="auth-stars"></canvas>
+      <div id="auth-twinkles" class="auth-twinkles"></div>
+      <div class="auth-shooting-star"></div>
+      <div class="auth-glow-aura"></div>
+      <div class="auth-globe-wrap">
+        <div class="auth-globe-glow"></div>
+        <div class="auth-globe" id="auth-globe">
+          <div class="auth-globe-map" id="auth-globe-map"></div>
+          <div class="auth-globe-shade"></div>
         </div>
       </div>
+    </div>
 
-      <div class="auth-card">
-        <div class="auth-logo">
-          <span class="auth-logo-icon">🚑</span>
-          <span class="auth-logo-text">Скорая</span>
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span class="auth-logo-icon">{{ icon_cross() }}</span>
+        <span class="auth-logo-text">Скорая помощь</span>
+      </div>
+
+      <h1 class="auth-title">Вход в систему</h1>
+
+      {% if error %}
+        <div class="notice notice-danger auth-error">{{ error }}</div>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('auth.login') }}" class="auth-form" autocomplete="on">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ next_url }}">
+
+        <div class="form-group auth-field">
+          <label class="form-label" for="auth-login">Логин</label>
+          <input id="auth-login" type="text" name="username"
+                 class="form-textarea auth-input"
+                 required autofocus
+                 autocomplete="username"
+                 spellcheck="false">
         </div>
 
-        <h1 class="auth-title">Вход в систему</h1>
-        <p class="auth-subtitle">Введите логин и пароль, чтобы продолжить</p>
-
-        {% if error %}
-          <div class="notice notice-danger auth-error">{{ error }}</div>
-        {% endif %}
-
-        <form method="POST" action="{{ url_for('auth.login') }}" class="auth-form" autocomplete="on">
-          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-
-          <div class="form-group auth-field">
-            <label class="form-label" for="auth-login">Логин</label>
-            <input id="auth-login" type="text" name="login"
+        <div class="form-group auth-field">
+          <label class="form-label" for="auth-password">Пароль</label>
+          <div class="auth-password-wrap">
+            <input id="auth-password" type="password" name="password"
                    class="form-textarea auth-input"
-                   required autofocus
-                   autocomplete="username"
-                   spellcheck="false">
+                   required
+                   autocomplete="current-password">
+            <button type="button" id="auth-toggle-pass"
+                    class="auth-password-toggle"
+                    aria-label="Показать пароль">{{ icon_eye() }}</button>
           </div>
+        </div>
 
-          <div class="form-group auth-field">
-            <label class="form-label" for="auth-password">Пароль</label>
-            <div class="auth-password-wrap">
-              <input id="auth-password" type="password" name="password"
-                     class="form-textarea auth-input"
-                     required
-                     autocomplete="current-password">
-              <button type="button" id="auth-toggle-pass"
-                      class="auth-password-toggle"
-                      aria-label="Показать пароль">👁</button>
-            </div>
-          </div>
+        <button type="submit" class="btn btn-primary btn-block auth-submit">
+          Войти
+        </button>
+      </form>
 
-          <button type="submit" class="btn btn-primary btn-block auth-submit">
-            Войти
-          </button>
-        </form>
-
-        <p class="auth-footer">
-          Доступ выдаёт администратор. Если не помните пароль —
-          обратитесь к главному админу.
-        </p>
-      </div>
+      <p class="auth-footer">
+        Доступ выдаёт администратор.
+      </p>
     </div>
   </div>
 {% endblock %}
 
 {% block js %}
   <script>
+    /* Текстура Земли: грузим заранее и показываем плавно.
+       Если картинки нет (офлайн без кэша) — остаётся градиентный «океан». */
+    (function () {
+      var map = document.getElementById("auth-globe-map");
+      if (!map) return;
+      var src = {{ url_for('static', filename='img/earth.jpg') | tojson }};
+      var probe = new Image();
+      probe.onload = function () { map.style.backgroundImage = "url('" + src + "')"; };
+      probe.onerror = function () { map.classList.add("auth-globe-map-fallback"); };
+      probe.src = src;
+    })();
+
+    /* Звёздное поле: рисуем один раз на canvas (статично, без постоянного
+       repaint), несколько звёзд-«мерцалок» — CSS-анимацией. */
+    (function () {
+      var canvas = document.getElementById("auth-stars");
+      if (!canvas || !canvas.getContext) return;
+      var ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      function draw() {
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        var w = window.innerWidth, h = window.innerHeight;
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+        canvas.style.width = w + "px";
+        canvas.style.height = h + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+
+        var count = Math.round(Math.min(220, w * h / 6500));
+        for (var i = 0; i < count; i++) {
+          var x = Math.random() * w;
+          var y = Math.random() * h;
+          var r = Math.random() * 1.1 + 0.3;
+          var a = Math.random() * 0.55 + 0.2;
+          var blue = Math.random() > 0.7;
+          ctx.beginPath();
+          ctx.fillStyle = blue
+            ? "rgba(178, 205, 255, " + a.toFixed(2) + ")"
+            : "rgba(255, 255, 255, " + a.toFixed(2) + ")";
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      draw();
+
+      var resizeTimer = null;
+      window.addEventListener("resize", function () {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(draw, 250);
+      });
+
+      /* Мерцающие звёзды */
+      var reduceMotion = window.matchMedia
+        && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var host = document.getElementById("auth-twinkles");
+      if (host && !reduceMotion) {
+        var stars = Math.min(10, Math.round(window.innerWidth / 130)) + 2;
+        for (var j = 0; j < stars; j++) {
+          var s = document.createElement("span");
+          s.className = "auth-twinkle";
+          s.style.left = (Math.random() * 96 + 2).toFixed(1) + "%";
+          s.style.top = (Math.random() * 80 + 2).toFixed(1) + "%";
+          s.style.animationDelay = (Math.random() * 4).toFixed(2) + "s";
+          s.style.animationDuration = (2.4 + Math.random() * 2.6).toFixed(2) + "s";
+          host.appendChild(s);
+        }
+      }
+    })();
+  </script>
+
+  <script>
     (function () {
       const pwd = document.getElementById("auth-password");
       const btn = document.getElementById("auth-toggle-pass");
       if (!pwd || !btn) return;
+      const eyeSvg = btn.innerHTML;
+      const eyeOffSvg = eyeSvg.replace(
+        'M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z',
+        'M4 4l16 16M9.9 5.6A10.5 10.5 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3.2 3.8M6.7 6.9A17 17 0 0 0 2.5 12S6 18.5 12 18.5a10 10 0 0 0 3.4-.6'
+      );
+      let shown = false;
       btn.addEventListener("click", () => {
-        const isPwd = pwd.type === "password";
-        pwd.type = isPwd ? "text" : "password";
-        btn.textContent = isPwd ? "🙈" : "👁";
-        btn.setAttribute("aria-label", isPwd ? "Скрыть пароль" : "Показать пароль");
+        shown = !shown;
+        pwd.type = shown ? "text" : "password";
+        btn.innerHTML = shown ? eyeOffSvg : eyeSvg;
+        btn.setAttribute("aria-label", shown ? "Скрыть пароль" : "Показать пароль");
         pwd.focus();
       });
     })();

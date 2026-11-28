@@ -1,108 +1,91 @@
 .admin-hero {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  gap: 1rem;
+  align-items: baseline;
+  gap: 0.75rem;
   flex-wrap: wrap;
-  padding: 1.2rem 1.3rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-left: 5px solid var(--primary);
-  border-radius: var(--radius);
-  margin-bottom: 1.25rem;
-  box-shadow: var(--shadow-card);
+  margin-bottom: 14px;
 }
 .admin-hero-main { min-width: 0; }
 .admin-hero-title {
   margin: 0;
-  font-size: 1.55rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  font-size: 19px;
+  font-weight: 600;
   overflow-wrap: break-word;
 }
 .admin-hero-sub {
-  margin: 0.3rem 0 0;
+  margin: 2px 0 0;
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: 13px;
   overflow-wrap: break-word;
 }
 .admin-hero-meta { flex-shrink: 0; }
 .admin-hero-badge {
   display: inline-block;
-  padding: 0.4rem 0.85rem;
-  border-radius: 999px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg-elev);
   border: 1px solid var(--border);
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--text-muted);
 }
 
 .admin-section {
-  margin-bottom: 1.75rem;
+  margin-bottom: 20px;
 }
 .admin-section-head {
-  margin-bottom: 0.85rem;
+  margin-bottom: 8px;
 }
 .admin-section-title {
   margin: 0;
-  font-size: 1.2rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  font-size: 16px;
+  font-weight: 600;
 }
 .admin-section-sub {
-  margin: 0.15rem 0 0;
+  margin: 2px 0 0;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 12px;
 }
 
+/* Сводка — компактная строка показателей. */
 .stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 0.85rem;
-}
-.stats-card {
-  position: relative;
+  display: flex;
+  gap: 0;
+  flex-wrap: wrap;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-left: 5px solid var(--text-muted);
-  padding: 1rem 1.1rem;
   border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
-  transition: transform var(--transition), box-shadow var(--transition);
+  overflow: hidden;
 }
-.stats-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+.stats-card {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  padding: 10px 14px;
+  flex: 1 1 auto;
+  min-width: 130px;
 }
-.stats-card-danger { border-left-color: var(--danger); }
-.stats-card-warning { border-left-color: var(--warning); }
+.stats-card:last-child { border-right: none; }
 
-.stats-icon {
-  font-size: 1.35rem;
-  line-height: 1;
-  margin-bottom: 0.35rem;
-  opacity: 0.9;
-}
+.stats-icon { display: none; }
 .stats-value {
-  font-size: 1.9rem;
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 700;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 .stats-label {
   color: var(--text-muted);
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 0.2rem;
+  font-size: 12px;
 }
 
 .admin-table-wrap {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 .admin-table-wrap .table {
@@ -116,18 +99,17 @@
   overflow: hidden;
 }
 .table th, .table td {
-  padding: 0.8rem 1rem;
+  padding: 8px 12px;
   text-align: left;
   border-bottom: 1px solid var(--border);
   overflow-wrap: break-word;
   vertical-align: middle;
+  font-size: 14px;
 }
 .table th {
   background: var(--table-header-bg);
-  font-weight: 700;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  font-size: 12px;
   color: var(--text-muted);
   white-space: nowrap;
 }
@@ -146,8 +128,8 @@
   width: 1%;
 }
 .table-mono {
-  font-family: ui-monospace, "SF Mono", Consolas, monospace;
-  font-size: 0.92rem;
+  font-family: Consolas, "DejaVu Sans Mono", monospace;
+  font-size: 13px;
 }
 .table-muted {
   color: var(--text-muted);
@@ -155,63 +137,62 @@
 .table-empty {
   text-align: center;
   color: var(--text-muted);
-  padding: 1.5rem 1rem;
+  padding: 18px 12px;
 }
 
 .role-badge {
   display: inline-block;
-  padding: 0.2rem 0.55rem;
-  border-radius: 999px;
-  font-size: 0.78rem;
+  padding: 1px 7px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.02em;
   white-space: nowrap;
 }
 .role-superadmin {
-  background: rgba(239,83,80,0.16);
+  background: rgba(208,106,106,0.15);
   color: var(--danger);
-  border: 1px solid rgba(239,83,80,0.35);
+  border: 1px solid rgba(208,106,106,0.4);
 }
 .role-admin {
-  background: rgba(59,130,246,0.16);
+  background: rgba(111,151,189,0.15);
   color: var(--primary);
-  border: 1px solid rgba(59,130,246,0.35);
+  border: 1px solid rgba(111,151,189,0.4);
 }
 .role-doctor {
-  background: rgba(74,222,128,0.16);
+  background: rgba(116,171,142,0.15);
   color: var(--success);
-  border: 1px solid rgba(74,222,128,0.35);
+  border: 1px solid rgba(116,171,142,0.4);
 }
 
 .admin-form {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  padding: 1.25rem;
+  padding: 14px;
   border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
 }
 .admin-form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0.9rem 1rem;
+  gap: 10px 12px;
 }
 .admin-form-actions {
-  margin-top: 1rem;
+  margin-top: 12px;
   display: flex;
   justify-content: flex-end;
 }
 .admin-form-actions .btn {
-  min-width: 220px;
+  min-width: 180px;
 }
 
 @media (max-width: 640px) {
   .admin-hero {
-    padding: 1rem;
     flex-direction: column;
     align-items: flex-start;
   }
-  .admin-hero-title { font-size: 1.3rem; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .admin-hero-title { font-size: 17px; }
+  .stats-grid { flex-direction: column; }
+  .stats-card { border-right: none; border-bottom: 1px solid var(--border); }
+  .stats-card:last-child { border-bottom: none; }
   .admin-form-actions .btn { width: 100%; min-width: 0; }
 
   .admin-table-wrap {
@@ -222,7 +203,7 @@
     min-width: 560px;
   }
   .table th, .table td {
-    padding: 0.6rem 0.7rem;
-    font-size: 0.88rem;
+    padding: 6px 8px;
+    font-size: 13px;
   }
 }

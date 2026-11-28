@@ -1,6 +1,7 @@
 (function () {
   const FIELD_KEY = "search_field";
   const LAYERS_KEY = "map_layers_v1";
+  const MAP_DATA_KEY = "map_data_v1";
 
   const toggle      = document.getElementById("field-toggle");
   const menu        = document.getElementById("field-menu");
@@ -26,9 +27,9 @@
   if (!toggle || !menu || !input || !results) return;
 
   const labels = {
-    name:    "Поиск по ФИО",
-    address: "Поиск по адресу",
-    phone:   "Поиск по номеру телефона",
+    name:    "По ФИО",
+    address: "По адресу",
+    phone:   "По телефону",
   };
 
   let currentView = viewInput ? viewInput.value : "all";
@@ -408,11 +409,16 @@
     if (!mapEl || typeof L === "undefined") return;
 
     if (!map) {
-      map = L.map(mapEl).setView([43.585, 39.723], 12);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      map = L.map(mapEl, {
+        maxBounds: [[42.7, 38.2], [44.5, 41.5]],
+        maxBoundsViscosity: 1.0,
+        minZoom: 10,
+      }).setView([43.585, 39.723], 12);
+      L.tileLayer(mapEl.dataset.tiles || "/tiles/{z}/{x}/{y}.png", {
         maxZoom: 19,
-        attribution: "© OpenStreetMap contributors",
+        attribution: mapEl.dataset.attribution || "© 2ГИС",
       }).addTo(map);
+      if (map.attributionControl) map.attributionControl.setPrefix(false);
       startGeolocation();
     }
 
@@ -420,14 +426,43 @@
     loadMapData();
   }
 
+  function rememberMapData(data) {
+    try {
+      localStorage.setItem(MAP_DATA_KEY, JSON.stringify(data));
+    } catch (e) {}
+  }
+
+  function cachedMapData() {
+    try {
+      const raw = localStorage.getItem(MAP_DATA_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      return data && Array.isArray(data.calls) && Array.isArray(data.doctors) ? data : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   async function loadMapData() {
     try {
       const res = await fetch("/fe/api/map_data?view=" + encodeURIComponent(currentView));
-      if (!res.ok) return;
-      const data = await res.json();
-      renderMapData(data);
+      if (res.ok) {
+        const data = await res.json();
+        rememberMapData(data);
+        renderMapData(data);
+        return;
+      }
     } catch (e) {
-      console.error("Не удалось загрузить данные карты", e);
+      // Без связи работаем с последними сохранёнными точками.
+    }
+
+    const cached = cachedMapData();
+    if (cached) {
+      renderMapData(cached);
+      const status = document.getElementById("map-offline-status");
+      if (status) status.textContent = "Карта: данные из офлайн-кэша";
+    } else {
+      renderMapData({ calls: [], doctors: [] });
     }
   }
 
@@ -566,7 +601,7 @@
 
         const icon = L.divIcon({
           className: "ambulance-marker",
-          html: "🚑",
+          html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block" aria-hidden="true"><path d="M9.5 3h5v6.5H21v5h-6.5V21h-5v-6.5H3v-5h6.5z" fill="currentColor" stroke="none"/></svg>',
           iconSize: [32, 32],
           iconAnchor: [16, 16],
         });
@@ -639,7 +674,7 @@
         if (!ambulanceMarkerSelf) {
           const ambulanceIcon = L.divIcon({
             className: "ambulance-marker",
-            html: "🚑",
+            html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block" aria-hidden="true"><path d="M9.5 3h5v6.5H21v5h-6.5V21h-5v-6.5H3v-5h6.5z" fill="currentColor" stroke="none"/></svg>',
             iconSize: [32, 32],
             iconAnchor: [16, 16],
           });

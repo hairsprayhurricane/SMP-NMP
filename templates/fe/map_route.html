@@ -1,9 +1,10 @@
 {% extends "fe/base.html" %}
+{% from "fe/_icons.html" import icon_pin, icon_refresh %}
 {% block title %}Маршрут к вызову #{{ call.number }}{% endblock %}
 
 {% block css %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/map_route.css') }}">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.css') }}" />
 {% endblock %}
 
 {% block content %}
@@ -11,31 +12,31 @@
     <a href="/fe/call/{{ call.id }}" class="btn btn-outline btn-back">← Назад к вызову</a>
 
     <h1 class="page-title">Маршрут к вызову #{{ call.number }}</h1>
-    <p class="map-route-info">📍 {{ call.address }} — {{ call.patient_name }}</p>
+    <p class="map-route-info">{{ icon_pin() }} {{ call.address }} — {{ call.patient_name }}</p>
 
     <div id="route-status" class="route-status">
       Определяем ваше местоположение…
     </div>
 
-    <div id="route-map" class="route-map" style="height:60vh; min-height:400px; width:100%;"></div>
+    <div id="route-map" class="route-map" style="height:60vh; min-height:400px; width:100%;"
+         data-tiles="{{ map_tile_url }}" data-attribution="{{ map_attribution }}"></div>
 
     <div class="route-actions">
       <button type="button" id="retry-geo-btn" class="btn btn-outline btn-block">
-        📍 Повторить запрос геолокации
+        Повторить запрос геолокации
       </button>
       <button type="button" id="manual-locate-btn" class="btn btn-outline btn-block">
-        🖐 Указать местоположение на карте
+        Указать местоположение на карте
       </button>
       <button type="button" id="recalc-btn" class="btn btn-outline btn-block">
-        🔄 Перестроить маршрут
+        {{ icon_refresh() }} Перестроить маршрут
       </button>
     </div>
 
     <p class="route-hint">
-      Маршрут строится через публичный OSRM. Тайлы карты кэшируются
-      локально при просмотре и далее доступны без интернета.
-      Если браузер блокирует геолокацию — нажмите «Повторить запрос» или
-      укажите местоположение вручную кликом по карте.
+      Плитки карты кэшируются при просмотре и дальше работают без интернета.
+      Без связи строится прямой путь. Если браузер блокирует геолокацию —
+      нажмите «Повторить запрос» или укажите точку кликом по карте.
     </p>
   </div>
 
@@ -45,6 +46,6 @@
 {% endblock %}
 
 {% block js %}
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
   <script src="{{ url_for('static', filename='js/map_route.js') }}"></script>
 {% endblock %}

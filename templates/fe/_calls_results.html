@@ -1,3 +1,4 @@
+{% from "fe/_icons.html" import icon_pin, icon_phone, icon_ambulance %}
 <div id="calls-container">
   {% for call in calls %}
     <article class="call-card call-priority-{{ call.priority }}
@@ -10,11 +11,11 @@
         </div>
         <div class="call-reason">{{ call.reason }}</div>
         <h2 class="call-title">{{ call.patient_name }}</h2>
-        <p class="call-address">📍 {{ call.address }}</p>
+        <p class="call-address">{{ icon_pin() }} {{ call.address }}</p>
         {% if call.distance_km is not none %}
-          <p class="call-distance">🚑 ≈ {{ call.distance_km }} км</p>
+          <p class="call-distance">{{ icon_ambulance() }} {{ call.distance_km }} км</p>
         {% endif %}
-        <p class="call-phone">📞 {{ call.patient_phone }}</p>
+        <p class="call-phone">{{ icon_phone() }} {{ call.patient_phone }}</p>
       </a>
 
       {% if call.is_completed %}

@@ -1,31 +1,32 @@
 {% extends "base.html" %}
+{% from "fe/_icons.html" import icon_pin, icon_phone, icon_ambulance, icon_map, icon_list, icon_target, icon_refresh, icon_route, icon_stethoscope %}
 {% block title %}Список вызовов{% endblock %}
 
 {% block css %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/calls_list.css') }}">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.css') }}" />
 {% endblock %}
 
 {% block content %}
   {% if current_user.role == 'doctor' and my_active_call %}
     <section class="active-call-hero">
       <div class="active-call-hero-head">
-        <span class="active-call-hero-badge">🎯 Ваш активный вызов</span>
+        <span class="active-call-hero-badge">Текущий вызов</span>
         <span class="active-call-hero-distance">
           {% if my_active_call.distance_km is not none %}
-            🚑 ≈ {{ my_active_call.distance_km }} км
+            {{ my_active_call.distance_km }} км
           {% endif %}
         </span>
       </div>
       <h1 class="active-call-hero-title">{{ my_active_call.patient_name }}</h1>
-      <p class="active-call-hero-address">📍 {{ my_active_call.address }}</p>
-      <p class="active-call-hero-phone">📞 {{ my_active_call.patient_phone }}</p>
+      <p class="active-call-hero-address">{{ icon_pin() }} {{ my_active_call.address }}</p>
+      <p class="active-call-hero-phone">{{ icon_phone() }} {{ my_active_call.patient_phone }}</p>
       <div class="active-call-hero-actions">
         <a href="/call/{{ my_active_call.id }}" class="btn btn-primary btn-block">
           Открыть вызов
         </a>
         <a href="/map/route/{{ my_active_call.id }}" class="btn btn-outline btn-block">
-          🧭 Маршрут
+          {{ icon_route() }} Маршрут
         </a>
       </div>
     </section>
@@ -33,7 +34,7 @@
 
   {% if current_user.role == 'doctor' and not my_active_call %}
     <div class="doctor-idle-banner">
-      <span class="doctor-idle-icon" aria-hidden="true">🩺</span>
+      <span class="doctor-idle-icon" aria-hidden="true">{{ icon_stethoscope() }}</span>
       <div>
         <strong>Нет активного вызова.</strong>
         Возьмите вызов из списка ниже — он появится здесь как главный экран.
@@ -70,23 +71,23 @@
   <div class="page-head">
     <div class="page-actions">
       <button type="button" id="map-toggle-btn" class="btn btn-outline">
-        🗺️ Карта <span class="map-toggle-state">[off]</span>
+        Карта <span class="map-toggle-state">[off]</span>
       </button>
 
       {% if current_user.role in ('admin', 'superadmin') %}
         <button type="button" id="list-toggle-btn" class="btn btn-outline">
-          📋 Показать список вызовов <span class="list-toggle-state">[{{ 'on' if list_on else 'off' }}]</span>
+          Список <span class="list-toggle-state">[{{ 'on' if list_on else 'off' }}]</span>
         </button>
       {% endif %}
 
       {% if current_user.role == 'doctor' %}
         <button type="button" id="sort-distance-btn"
                 class="btn btn-outline {% if view == 'nearest' %}btn-active{% endif %}">
-          📍 Ближайший вызов
+          Ближайший вызов
         </button>
       {% endif %}
 
-      <a href="/" id="refresh-btn" class="btn btn-outline">🔄 Обновить</a>
+      <a href="/" id="refresh-btn" class="btn btn-outline">Обновить</a>
     </div>
   </div>
 
@@ -95,7 +96,7 @@
       <div class="search-input-wrap" id="search-input-wrap">
         <div id="phone-mask-view" class="phone-mask-view" hidden></div>
         <input id="calls-search" name="q" class="search-input"
-               type="search" placeholder="Поиск по базе вызовов"
+               type="search" placeholder="Поиск вызовов"
                value="{{ q }}">
       </div>
 
@@ -158,19 +159,19 @@
               <button type="button" id="layer-btn-ambulances"
                       class="map-layer-btn is-active" data-layer="ambulances"
                       aria-pressed="true" title="Машины скорой помощи">
-                <span class="map-layer-btn-icon" aria-hidden="true">🚑</span>
+                <span class="map-layer-btn-icon" aria-hidden="true">{{ icon_ambulance() }}</span>
                 <span class="map-layer-btn-label">Машины</span>
               </button>
               <button type="button" id="layer-btn-calls"
                       class="map-layer-btn is-active" data-layer="calls"
                       aria-pressed="true" title="Вызовы скорой помощи">
-                <span class="map-layer-btn-icon" aria-hidden="true">📍</span>
+                <span class="map-layer-btn-icon" aria-hidden="true">{{ icon_pin() }}</span>
                 <span class="map-layer-btn-label">Вызовы</span>
               </button>
               <button type="button" id="layer-btn-active"
                       class="map-layer-btn" data-layer="active"
                       aria-pressed="false" title="Скорые на вызове">
-                <span class="map-layer-btn-icon" aria-hidden="true">🎯</span>
+                <span class="map-layer-btn-icon" aria-hidden="true">{{ icon_target() }}</span>
                 <span class="map-layer-btn-label">На вызове</span>
               </button>
             </div>
@@ -187,7 +188,7 @@
                  data-accept-id="{{ accept_id or '' }}"
                  data-role="{{ current_user.role }}"
                  data-focus-call="{{ focus_call or '' }}"
-                 {% if map_on %}data-init-map="1"{% endif %}></div>
+                 {% if map_on %}data-init-map="1"{% endif %} data-tiles="{{ map_tile_url }}" data-attribution="{{ map_attribution }}"></div>
           </div>
         </div>
       </div>
@@ -199,7 +200,7 @@
                data-accept-id="{{ accept_id or '' }}"
                data-role="{{ current_user.role }}"
                data-focus-call="{{ focus_call or '' }}"
-               {% if map_on %}data-init-map="1"{% endif %}></div>
+               {% if map_on %}data-init-map="1"{% endif %} data-tiles="{{ map_tile_url }}" data-attribution="{{ map_attribution }}"></div>
         </div>
       </div>
     {% endif %}
@@ -207,6 +208,6 @@
 {% endblock %}
 
 {% block js %}
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
   <script src="{{ url_for('static', filename='js/calls_list.js') }}"></script>
 {% endblock %}

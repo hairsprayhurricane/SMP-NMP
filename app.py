@@ -15,13 +15,30 @@ Frontend (модуль fe_views.py, префикс /fe: список вызов�
 """
 import hmac
 import logging
+import math
 import os
 import secrets
 import sqlite3
+import tempfile
 from datetime import date, datetime, time, timedelta
 from logging.handlers import RotatingFileHandler
 
-from flask import Flask, abort, flash, g, redirect, render_template, request, session, url_for
+import requests
+from flask import (
+    Flask,
+    Response,
+    abort,
+    flash,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    send_from_directory,
+    session,
+    url_for,
+)
 from werkzeug.exceptions import HTTPException
 
 import api_client as api
@@ -114,6 +131,145 @@ init_database()
 
 
 # ---------------------------------------------------------------------------
+# Тайлы карты: локальный прокси, диск-кэш и предзагрузка для офлайна
+# ---------------------------------------------------------------------------
+def _latlon_to_tile(lat, lon, z):
+    """Номер тайла Web Mercator (та же схема, что у 2ГИС)."""
+    n = 1 << z
+    lon = max(-180.0, min(180.0, float(lon)))
+    lat = max(-85.05112878, min(85.05112878, float(lat)))
+    x = int((lon + 180.0) / 360.0 * n)
+    lat_rad = math.radians(lat)
+    y = int(
+        (1.0 - math.log(math.tan(lat_rad) + 1.0 / math.cos(lat_rad)) / math.pi)
+        / 2.0 * n
+    )
+    return max(0, min(n - 1, x)), max(0, min(n - 1, y))
+
+
+def _precache_bbox():
+    """min_lat, min_lon, max_lat, max_lon из конфигурации (с безопасным дефолтом)."""
+    try:
+        values = tuple(float(v) for v in config.MAP_PRECACHE_BBOX.split(","))
+        if len(values) == 4 and values[0] < values[2] and values[1] < values[3]:
+            return values
+    except (TypeError, ValueError):
+        pass
+    return (43.40, 39.30, 43.95, 40.00)
+
+
+def _precache_zooms():
+    """Диапазон зумов «11-13» -> (11, 13)."""
+    raw = (config.MAP_PRECACHE_ZOOMS or "").strip()
+    try:
+        if "-" in raw:
+            zmin, zmax = (int(part) for part in raw.split("-", 1))
+        else:
+            zmin = zmax = int(raw)
+    except ValueError:
+        zmin, zmax = 11, 13
+    zmin = max(0, min(18, zmin))
+    zmax = max(0, min(18, zmax))
+    return (zmin, zmax) if zmin <= zmax else (zmax, zmin)
+
+
+@app.route("/tiles/manifest.json")
+def map_tile_manifest():
+    """Список тайлов для service worker: что скачать в кэш браузера."""
+    min_lat, min_lon, max_lat, max_lon = _precache_bbox()
+    zmin, zmax = _precache_zooms()
+    tiles = []
+    for z in range(zmin, zmax + 1):
+        x1, y1 = _latlon_to_tile(max_lat, min_lon, z)
+        x2, y2 = _latlon_to_tile(min_lat, max_lon, z)
+        for x in range(x1, x2 + 1):
+            for y in range(y1, y2 + 1):
+                tiles.append("/tiles/%d/%d/%d.png" % (z, x, y))
+    return jsonify({
+        "tiles": tiles,
+        "count": len(tiles),
+        "zmin": zmin,
+        "zmax": zmax,
+        "bbox": [min_lat, min_lon, max_lat, max_lon],
+    })
+
+
+@app.route("/tiles/<int:z>/<int:x>/<int:y>.png")
+def map_tile(z, x, y):
+    """Отдаёт тайл из диска, а при промахе скачивает и кладёт в кэш.
+
+    Скачивание идёт только на хост из MAP_TILE_UPSTREAM; z/x/y приходят
+    целыми числами из маршрута, поэтому SSRF через параметры невозможен.
+    """
+    if z < 0 or z > 18:
+        return Response(status=404)
+    n = 1 << z
+    if not (0 <= x < n and 0 <= y < n):
+        return Response(status=404)
+
+    path = os.path.join(config.MAP_TILE_CACHE_DIR, str(z), str(x), "%d.png" % y)
+    if os.path.isfile(path):
+        return send_file(path, mimetype="image/png", max_age=604800)
+
+    upstream = config.MAP_TILE_UPSTREAM
+    if not all(key in upstream for key in ("{x}", "{y}", "{z}")):
+        log.error("MAP_TILE_UPSTREAM должен содержать {x}, {y} и {z}")
+        return Response(status=404)
+
+    url = upstream.format(x=x, y=y, z=z)
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+        ),
+        "Referer": "https://2gis.ru/",
+        "Accept": "image/png,image/*;q=0.8",
+    }
+    try:
+        resp = requests.get(url, headers=headers, timeout=config.API_TIMEOUT)
+    except requests.RequestException as exc:
+        log.warning("Тайл %s/%s/%s не скачан: %s", z, x, y, exc)
+        return Response(status=404)
+    if resp.status_code != 200 or not resp.content:
+        log.warning("Тайл %s/%s/%s: HTTP %s", z, x, y, resp.status_code)
+        return Response(status=404)
+
+    ctype = (resp.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+    if ctype not in ("image/png", "image/jpeg", "image/webp"):
+        log.warning("Тайл %s/%s/%s: неожиданный Content-Type %s", z, x, y, ctype)
+        return Response(status=404)
+
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix="tile-", suffix=".tmp", dir=os.path.dirname(path))
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(resp.content)
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+
+    return Response(
+        resp.content,
+        mimetype=ctype,
+        headers={"Cache-Control": "public, max-age=604800"},
+    )
+
+
+@app.route("/sw.js")
+def service_worker():
+    """Service worker отдаётся с корня, чтобы управлять и /, и /fe/."""
+    resp = send_from_directory(
+        os.path.join(app.static_folder, "js"),
+        "sw.js",
+        mimetype="application/javascript",
+    )
+    resp.headers["Service-Worker-Allowed"] = "/"
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
+
+
+# ---------------------------------------------------------------------------
 # Вспомогательное для шаблонов
 # ---------------------------------------------------------------------------
 STATUS_CLASSES = {
@@ -202,6 +358,8 @@ def inject_globals():
         "can": lambda code: code in perms,
         "doctor_portal_url": config.DOCTOR_PORTAL_URL,
         "bootstrap_local": bootstrap_local,
+        "map_tile_url": config.MAP_TILE_URL,
+        "map_attribution": config.MAP_ATTRIBUTION,
         "status_class": lambda s: STATUS_CLASSES.get(str(s).strip().lower(), "secondary"),
     }
 
@@ -227,13 +385,24 @@ def _audit(action, object_type=None, object_id=None):
 @app.route("/")
 @permission_required("calls.view")
 def index():
-    calls, failed = [], False
+    calls, failed, read_only = [], False, False
     try:
         calls = api.get_calls()
     except ApiError as exc:
-        failed = True
-        flash(exc.user_message, "danger")
-    return render_template("index.html", calls=calls, failed=failed)
+        stale, age = api.get_cached_calls()
+        if stale is not None:
+            calls = stale
+            read_only = True
+            flash(
+                "Нет связи с сервером: показан последний загруженный список вызовов "
+                "(возраст %d с). Данные только для чтения; создание новых записей "
+                "временно недоступно." % age,
+                "warning",
+            )
+        else:
+            failed = True
+            flash(exc.user_message, "danger")
+    return render_template("index.html", calls=calls, failed=failed, read_only=read_only)
 
 
 @app.route("/call/<call_id>")
@@ -270,12 +439,23 @@ def call_detail(call_id):
 @permission_required("patients.view")
 def patient_detail(patient_id):
     call_id = request.args.get("call", "")
+    read_only = False
     try:
         patient = api.get_patient(patient_id)
     except NotFoundError:
         return render_template("error.html", code=404, message="Пациент не найден."), 404
     except ApiError as exc:
-        return render_template("error.html", code=502, message=exc.user_message), 502
+        stale, age = api.get_cached_patient(patient_id)
+        if stale is None:
+            return render_template("error.html", code=502, message=exc.user_message), 502
+        patient = stale
+        read_only = True
+        flash(
+            "Нет связи с сервером: показана последняя загруженная карточка пациента "
+            "(возраст %d с). Данные только для чтения; запись на приём "
+            "временно недоступна." % age,
+            "warning",
+        )
     _audit("patient.view", "patient", patient_id)
 
     appointments, appointments_failed = [], False
@@ -290,6 +470,7 @@ def patient_detail(patient_id):
         call_id=call_id,
         appointments=appointments,
         appointments_failed=appointments_failed,
+        read_only=read_only,
     )
 
 

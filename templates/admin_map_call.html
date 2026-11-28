@@ -3,7 +3,7 @@
 
 {% block css %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_map_call.css') }}">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.css') }}" />
 {% endblock %}
 
 {% block content %}
@@ -66,12 +66,13 @@
            data-call-address="{{ call.address }}"
            data-owner-name="{{ owner_name or '' }}"
            data-owner-lat="{{ owner_lat if owner_lat is not none else '' }}"
-           data-owner-lng="{{ owner_lng if owner_lng is not none else '' }}"></div>
+           data-owner-lng="{{ owner_lng if owner_lng is not none else '' }}"
+           data-tiles="{{ map_tile_url }}" data-attribution="{{ map_attribution }}"></div>
     </div>
   </div>
 {% endblock %}
 
 {% block js %}
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
   <script src="{{ url_for('static', filename='js/admin_map_call.js') }}"></script>
 {% endblock %}

@@ -1,4 +1,9 @@
+/* ===== Страница входа: анимированный космический фон с планетой ===== */
+
 .login-lock {
+  position: relative;
+  z-index: 1;
+  width: 100%;
   min-height: calc(100vh - var(--header-height));
   display: flex;
   align-items: center;
@@ -31,209 +36,238 @@ body:has(.login-lock) .flash-area {
   z-index: 2;
 }
 
-.login-lock .auth-shell {
-  width: 100%;
-  max-width: 1120px;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  align-items: center;
+/* На фоне-«космосе» шапка становится полупрозрачной тёмной,
+   чтобы не торчала белой полосой поверх сцены. */
+body:has(.login-lock) .app-header {
+  --header-bg: rgba(10, 17, 32, 0.88);
+  --header-text: #dfe4ea;
+  --header-muted: #8b96a1;
+  --header-border: rgba(255, 255, 255, 0.14);
+  --header-hover: rgba(255, 255, 255, 0.08);
+  --header-active: rgba(255, 255, 255, 0.16);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 
-.login-lock .auth-visual {
-  min-height: min(520px, calc(100vh - var(--header-height) - 3rem));
-}
+/* ---------- Сцена ---------- */
 
-.login-lock .auth-card {
-  max-height: calc(100vh - var(--header-height) - 3rem);
-  overflow: auto;
-}
-
-.auth-shell {
-  min-height: calc(100vh - var(--header-height) - 2rem);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  align-items: center;
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 1rem;
-}
-
-.auth-visual {
-  position: relative;
+.auth-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
   overflow: hidden;
-  border-radius: 20px;
-  min-height: 520px;
-  padding: 2.5rem;
-  display: flex;
-  align-items: flex-end;
-  background:
-    radial-gradient(1200px 600px at -10% 0%, rgba(59,130,246,0.35), transparent 60%),
-    radial-gradient(800px 500px at 110% 100%, rgba(239,83,80,0.28), transparent 55%),
-    linear-gradient(160deg, #10233a 0%, #0b1626 55%, #0a1220 100%);
-  border: 1px solid rgba(255,255,255,0.06);
-  box-shadow: 0 24px 60px rgba(0,0,0,0.35);
-  animation: auth-visual-in 0.7s ease both;
+  background: linear-gradient(180deg, #0a1120 0%, #0d1a30 45%, #08101c 100%);
+  pointer-events: none;
 }
 
-.auth-visual-pulse {
-  position: absolute;
-  inset: -30% -20%;
-  background: conic-gradient(from 0deg,
-    rgba(59,130,246,0.0),
-    rgba(59,130,246,0.18),
-    rgba(239,83,80,0.0) 55%,
-    rgba(59,130,246,0.18),
-    rgba(59,130,246,0.0));
-  animation: auth-rotate 18s linear infinite;
-  filter: blur(30px);
-  opacity: 0.8;
-}
-
-.auth-visual-grid {
+.auth-stars {
   position: absolute;
   inset: 0;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
-  background-size: 36px 36px;
-  mask-image: radial-gradient(circle at 50% 60%, #000 30%, transparent 75%);
-  -webkit-mask-image: radial-gradient(circle at 50% 60%, #000 30%, transparent 75%);
-  opacity: 0.5;
-}
-
-.auth-visual-cross {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 160px;
-  height: 160px;
-  transform: translate(-50%, -60%);
-  opacity: 0.9;
-  filter: drop-shadow(0 0 24px rgba(239,83,80,0.45));
-  animation: auth-pulse 3.2s ease-in-out infinite;
-}
-.auth-visual-cross-v,
-.auth-visual-cross-h {
-  position: absolute;
-  background: linear-gradient(180deg, #ef5350, #b71c1c);
-  border-radius: 8px;
-}
-.auth-visual-cross-v {
-  left: 50%;
-  top: 0;
-  width: 44px;
-  height: 100%;
-  transform: translateX(-50%);
-}
-.auth-visual-cross-h {
-  top: 50%;
-  left: 0;
-  height: 44px;
   width: 100%;
-  transform: translateY(-50%);
-  background: linear-gradient(90deg, #ef5350, #b71c1c);
+  height: 100%;
 }
 
-.auth-visual-text {
-  position: relative;
-  z-index: 2;
-  color: #eaf2fb;
+.auth-twinkles {
+  position: absolute;
+  inset: 0;
 }
-.auth-visual-title {
-  font-size: 1.6rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+
+.auth-twinkle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px 1px rgba(200, 225, 255, 0.9);
+  animation: auth-twinkle 3s ease-in-out infinite;
+  opacity: 0.25;
 }
-.auth-visual-sub {
-  font-size: 0.95rem;
-  opacity: 0.8;
-  margin-top: 0.35rem;
+
+@keyframes auth-twinkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.7); }
+  50%      { opacity: 1;    transform: scale(1.15); }
+}
+
+.auth-shooting-star {
+  position: absolute;
+  top: 14%;
+  left: 4%;
+  width: 14vw;
+  max-width: 170px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, rgba(215, 232, 255, 0.9));
+  opacity: 0;
+  transform: rotate(28deg);
+  animation: auth-shoot 15s linear infinite;
+}
+
+@keyframes auth-shoot {
+  0%   { opacity: 0; transform: translate3d(0, 0, 0) rotate(28deg); }
+  84%  { opacity: 0; transform: translate3d(0, 0, 0) rotate(28deg); }
+  86%  { opacity: 0.95; }
+  92%  { opacity: 0; transform: translate3d(34vw, 24vh, 0) rotate(28deg); }
+  100% { opacity: 0; transform: translate3d(34vw, 24vh, 0) rotate(28deg); }
+}
+
+/* Мягкая «аура» вокруг планеты — статичный градиент. */
+.auth-glow-aura {
+  position: absolute;
+  right: -12vmin;
+  bottom: -12vmin;
+  width: 96vmin;
+  height: 96vmin;
+  background: radial-gradient(circle, rgba(64, 120, 200, 0.22) 0%, rgba(64, 120, 200, 0.08) 40%, transparent 65%);
+}
+
+/* ---------- Планета ---------- */
+
+.auth-globe-wrap {
+  position: absolute;
+  right: -14vmin;
+  bottom: -12vmin;
+  width: 64vmin;
+  height: 64vmin;
+}
+
+.auth-globe-glow {
+  position: absolute;
+  inset: -5%;
+  border-radius: 50%;
+  box-shadow: 0 0 90px 14px rgba(92, 146, 235, 0.32);
+  animation: auth-glow-pulse 9s ease-in-out infinite alternate;
+}
+
+@keyframes auth-glow-pulse {
+  from { opacity: 0.65; }
+  to   { opacity: 1; }
+}
+
+.auth-globe {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  /* «Океан» виден до загрузки текстуры и если её нет совсем */
+  background: radial-gradient(circle at 34% 30%, #2c5d8f 0%, #1c3f68 45%, #0c2244 78%, #081730 100%);
+}
+
+/* Вращение: слой в 4 ширины планеты с повторяющейся равнопромежуточной
+   картой Земли; сдвиг на 50% (ровно одна копия карты) — бесшовный цикл.
+   Анимация только transform — работает на GPU, на планшетах без просадок. */
+.auth-globe-map {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 400%;
+  height: 100%;
+  background-repeat: repeat-x;
+  background-position: 0 0;
+  background-size: 50% 100%;
+  will-change: transform;
+  animation: auth-rotate 90s linear infinite;
 }
 
 @keyframes auth-rotate {
-  to { transform: rotate(360deg); }
-}
-@keyframes auth-pulse {
-  0%, 100% { transform: translate(-50%, -60%) scale(1); opacity: 0.9; }
-  50%      { transform: translate(-50%, -60%) scale(1.06); opacity: 1; }
-}
-@keyframes auth-visual-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
 }
 
-.auth-card {
-  background: var(--bg-card);
-  border: 2px solid var(--border);
-  border-radius: 20px;
-  padding: 2.25rem 2rem;
-  box-shadow: var(--shadow-card);
-  animation: auth-card-in 0.6s ease both;
-  max-width: 500px;
-  width: 100%;
-  margin: 0 auto;
+.auth-globe-map-fallback {
+  background-image: none !important;
+  animation: none !important;
 }
+
+/* Сферическое затенение: блик слева-сверху + потемнение к краю диска. */
+.auth-globe-shade {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 32% 27%, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.1) 26%, transparent 48%),
+    radial-gradient(circle at 50% 50%, transparent 56%, rgba(5, 13, 32, 0.4) 86%, rgba(3, 9, 24, 0.72) 100%);
+  box-shadow:
+    inset -20px -16px 60px rgba(3, 10, 26, 0.55),
+    inset 12px 10px 34px rgba(150, 190, 255, 0.16);
+}
+
+/* ---------- Карточка входа ---------- */
+
+.auth-card {
+  position: relative;
+  z-index: 2;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 70px rgba(3, 10, 26, 0.5), 0 2px 8px rgba(3, 10, 26, 0.3);
+  padding: 1.75rem 1.5rem;
+  max-width: 420px;
+  width: 100%;
+  margin: 0;
+  animation: auth-card-in 0.5s ease both;
+}
+
 @keyframes auth-card-in {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 .auth-logo {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  margin-bottom: 1.5rem;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
 }
 .auth-logo-icon {
-  font-size: 2rem;
-  line-height: 1;
+  color: var(--danger);
+  display: inline-flex;
 }
+.auth-logo-icon .ic { width: 22px; height: 22px; }
 .auth-logo-text {
-  font-weight: 800;
-  font-size: 1.25rem;
-  letter-spacing: 0.02em;
+  font-weight: 600;
+  font-size: 17px;
 }
 
 .auth-title {
   margin: 0 0 0.3rem;
-  font-size: 1.6rem;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 600;
 }
 .auth-subtitle {
-  margin: 0 0 1.5rem;
+  margin: 0 0 1.25rem;
   color: var(--text-muted);
-  font-size: 1rem;
-  line-height: 1.45;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .auth-error { margin-bottom: 1rem; }
 
-.auth-form .auth-field { margin-bottom: 1.25rem; }
+.auth-form .auth-field { margin-bottom: 1rem; }
 
 .auth-form .form-label {
-  font-size: 1rem;
+  font-size: 13px;
   font-weight: 600;
-  margin-bottom: 0.55rem;
+  margin-bottom: 4px;
+  display: block;
 }
 
 .auth-input {
   width: 100%;
-  min-height: 64px;
-  padding: 1rem 1.1rem;
-  font-size: 1.1rem;
+  min-height: 38px;
+  padding: 7px 10px;
+  font-size: 14px;
   line-height: 1.3;
   background: var(--bg-elev);
   color: var(--text);
-  border: 2px solid var(--border);
-  border-radius: 10px;
-  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color var(--transition), background var(--transition);
   box-sizing: border-box;
+  font-family: inherit;
 }
 .auth-input::placeholder {
   color: var(--text-muted);
-  opacity: 0.8;
 }
 .auth-input:hover {
   border-color: var(--border-strong);
@@ -242,7 +276,7 @@ body:has(.login-lock) .flash-area {
   outline: none;
   border-color: var(--primary);
   background: var(--bg-card);
-  box-shadow: 0 0 0 4px rgba(59,130,246,0.18);
+  box-shadow: var(--focus-ring);
 }
 
 .auth-password-wrap {
@@ -251,25 +285,24 @@ body:has(.login-lock) .flash-area {
   align-items: stretch;
 }
 .auth-password-wrap .auth-input {
-  padding-right: 4rem;
+  padding-right: 3rem;
 }
 .auth-password-toggle {
   position: absolute;
   top: 50%;
-  right: 0.5rem;
+  right: 4px;
   transform: translateY(-50%);
-  width: 48px;
-  height: 48px;
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  border: none;
   background: transparent;
   color: var(--text-muted);
-  font-size: 1.25rem;
   cursor: pointer;
-  transition: background var(--transition), color var(--transition), transform var(--transition);
+  transition: background var(--transition), color var(--transition);
 }
 .auth-password-toggle:hover {
   background: var(--bg-card);
@@ -277,67 +310,91 @@ body:has(.login-lock) .flash-area {
 }
 .auth-password-toggle:focus-visible {
   outline: none;
-  border-color: var(--primary);
+  box-shadow: var(--focus-ring);
   color: var(--text);
 }
 
 .auth-submit {
-  margin-top: 0.5rem;
-  min-height: 64px;
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  margin-top: 4px;
+  min-height: 40px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .auth-footer {
-  margin: 1.5rem 0 0;
-  font-size: 0.9rem;
+  margin: 1.25rem 0 0;
+  font-size: 12px;
   color: var(--text-muted);
   text-align: center;
-  line-height: 1.5;
+  line-height: 1.45;
+}
+
+/* ---------- Адаптив ---------- */
+
+@media (min-width: 1024px) {
+  .login-lock {
+    justify-content: flex-start;
+    padding-left: clamp(16px, 8vw, 130px);
+  }
+  .auth-globe-wrap {
+    right: -6vmin;
+    bottom: -10vmin;
+    width: 74vmin;
+    height: 74vmin;
+  }
+  .auth-glow-aura {
+    right: -6vmin;
+    bottom: -8vmin;
+    width: 108vmin;
+    height: 108vmin;
+  }
 }
 
 @media (max-width: 900px) {
-  html:has(.login-lock),
-  body:has(.login-lock) {
-    overflow: hidden !important;
-  }
-  body:has(.login-lock) .app-main {
-    overflow-y: auto;
-  }
   .login-lock {
     padding: 0.5rem;
     min-height: calc(100vh - var(--header-height));
   }
-  .login-lock .auth-shell {
-    grid-template-columns: 1fr;
-    gap: 0.85rem;
+  .auth-globe-wrap {
+    right: -20vmin;
+    bottom: -16vmin;
+    width: 56vmin;
+    height: 56vmin;
   }
-  .login-lock .auth-visual {
-    min-height: 160px;
-    padding: 1rem;
+  .auth-glow-aura {
+    right: -18vmin;
+    bottom: -14vmin;
+    width: 84vmin;
+    height: 84vmin;
   }
-  .login-lock .auth-visual-title { font-size: 1.1rem; }
-  .login-lock .auth-visual-sub { font-size: 0.8rem; }
-  .login-lock .auth-visual-cross { width: 80px; height: 80px; }
-  .login-lock .auth-visual-cross-v { width: 24px; }
-  .login-lock .auth-visual-cross-h { height: 24px; }
-  .login-lock .auth-card {
-    padding: 1.25rem;
-    border-radius: 14px;
+  .auth-card {
+    padding: 16px;
     max-height: none;
   }
-  .login-lock .auth-title { font-size: 1.3rem; }
-  .login-lock .auth-subtitle { font-size: 0.92rem; margin-bottom: 1.1rem; }
-  .login-lock .auth-input { min-height: 58px; font-size: 1rem; padding: 0.9rem 1rem; }
-  .login-lock .auth-password-toggle { width: 44px; height: 44px; font-size: 1.15rem; }
-  .login-lock .auth-submit { min-height: 58px; font-size: 1.05rem; }
+  .auth-title { font-size: 16px; }
+  .auth-subtitle { font-size: 12px; margin-bottom: 14px; }
+  .auth-input { min-height: 36px; font-size: 14px; padding: 6px 10px; }
+  .auth-password-toggle { width: 30px; height: 30px; }
+  .auth-submit { min-height: 40px; }
 }
 
 @media (max-width: 480px) {
-  .login-lock .auth-card { padding: 1rem; }
-  .login-lock .auth-logo-text { font-size: 1.05rem; }
-  .login-lock .auth-logo-icon { font-size: 1.6rem; }
-  .login-lock .auth-title { font-size: 1.2rem; }
-  .login-lock .auth-input { min-height: 54px; font-size: 1rem; }
+  .auth-card { padding: 12px; }
+  .auth-logo-text { font-size: 15px; }
+  .auth-logo-icon .ic { width: 18px; height: 18px; }
+  .auth-title { font-size: 15px; }
+  .auth-input { min-height: 34px; font-size: 14px; }
+}
+
+/* ---------- Доступность: без анимации ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-globe-map,
+  .auth-globe-glow,
+  .auth-shooting-star,
+  .auth-twinkle,
+  .auth-card {
+    animation: none !important;
+  }
+  .auth-globe-map { will-change: auto; }
 }

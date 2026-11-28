@@ -43,12 +43,33 @@ TRUST_PROXY = os.getenv("TRUST_PROXY", "").strip().lower() in ("1", "true", "yes
 LOGIN_MAX_ATTEMPTS = int(_float("LOGIN_MAX_ATTEMPTS", 5))
 LOGIN_LOCK_MINUTES = int(_float("LOGIN_LOCK_MINUTES", 5))
 
-# Карта в карточке вызова (Leaflet). Плитки карты грузит браузер планшета.
+# Защищённый кэш чтения (задача «со звёздочкой»): сколько секунд после загрузки
+# данные вызовов/пациентов живут в ОЗУ (в зашифрованном виде) для показа
+# «последнего известного» при обрыве связи. 0 = кэш выключен.
+CACHE_TTL_SECONDS = int(_float("CACHE_TTL_SECONDS", 120))
+
+# Карта (Leaflet). Тайлы отдаёт локальный прокси /tiles/... и кэширует на диск,
+# поэтому карта работает без интернета. Источник по умолчанию — 2ГИС
+# (российский сервис, обычная проекция Web Mercator).
 MAP_ENABLED = os.getenv("MAP_ENABLED", "1").strip().lower() not in ("0", "false", "no")
-# Адрес плиток. Для закрытого контура укажите свой сервер плиток.
-MAP_TILE_URL = os.getenv("MAP_TILE_URL", "https://tile.openstreetmap.org/{z}/{x}/{y}.png").strip()
-MAP_ATTRIBUTION = os.getenv("MAP_ATTRIBUTION", "© участники OpenStreetMap").strip()
+# Адрес плиток для браузера. По умолчанию — наш прокси, а не внешний сайт.
+MAP_TILE_URL = os.getenv("MAP_TILE_URL", "/tiles/{z}/{x}/{y}.png").strip()
+MAP_ATTRIBUTION = os.getenv("MAP_ATTRIBUTION", "© 2ГИС").strip()
 MAP_ZOOM = int(_float("MAP_ZOOM", 16))
+# Откуда прокси скачивает тайлы. {x}, {y}, {z} подставляются только целыми
+# числами из URL, поэтому подменить хост через запрос нельзя.
+MAP_TILE_UPSTREAM = os.getenv(
+    "MAP_TILE_UPSTREAM",
+    "https://tile2.maps.2gis.com/tiles?x={x}&y={y}&z={z}",
+).strip()
+# Диск-кэш тайлов. Переживает перезапуск и работает без сети.
+MAP_TILE_CACHE_DIR = os.getenv(
+    "MAP_TILE_CACHE_DIR", os.path.join(BASE_DIR, "data", "tiles")
+).strip()
+# Что service worker скачивает заранее для офлайна:
+# min_lat,min_lon,max_lat,max_lon и диапазон зумов.
+MAP_PRECACHE_BBOX = os.getenv("MAP_PRECACHE_BBOX", "43.40,39.30,43.95,40.00").strip()
+MAP_PRECACHE_ZOOMS = os.getenv("MAP_PRECACHE_ZOOMS", "11-13").strip()
 
 
 def _secret_from_file(path):
